@@ -85,6 +85,10 @@ constant in `script.js`.
      - If manual override is OFF, imported floor plan is applied to display
      - If manual override is ON, imported floor plan is saved but display stays editable/manual
      - Team can click **Apply Latest Imported Floor Plan** anytime
+     - Team can draw a 4-sided floor shape directly on the interactive map
+     - Side dimensions can be entered for the shape and are shown on-map
+     - Furniture/appliance icons (TV, couch, dresser, bed, table, chair, lamp) support per-item dimensions
+     - Item icon size auto-scales proportionally to drawn floor shape dimensions
    - In **Client Snapshot**, use **Find & Import Floor Plan** to auto-populate
      floor plan image + dimensions from the address.
 
