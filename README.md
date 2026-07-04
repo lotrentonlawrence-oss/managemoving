@@ -80,6 +80,11 @@ constant in `script.js`.
      - `floorPlanUrl`
      - `dimensions: { widthFt, lengthFt, sqft }`
      - `source`, `sourceUrl`, `provider`
+   - New workflow behavior:
+     - Auto-import always saves latest provider result to `floorPlanImported`
+     - If manual override is OFF, imported floor plan is applied to display
+     - If manual override is ON, imported floor plan is saved but display stays editable/manual
+     - Team can click **Apply Latest Imported Floor Plan** anytime
    - In **Client Snapshot**, use **Find & Import Floor Plan** to auto-populate
      floor plan image + dimensions from the address.
 
