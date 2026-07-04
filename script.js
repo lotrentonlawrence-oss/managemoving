@@ -18,7 +18,7 @@ if (navToggle && siteNav) {
 const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-// Contact form -> Google Apps Script mailer (inquires@sweethometransitions.com -> trenton@sweethometransitions.com)
+// Contact form -> Google Apps Script mailer (hello@sweethometransitions.com -> trenton@sweethometransitions.com)
 // Replace the URL below with your deployed Apps Script Web App URL.
 // See apps-script/Code.gs and EMAIL_SETUP.md for full deployment steps.
 const SCRIPT_URL = 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
