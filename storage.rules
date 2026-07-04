@@ -1,0 +1,25 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isTeam() {
+      return isAuthenticated() &&
+        request.auth.token.team == true;
+    }
+
+    function isProjectClient(projectId) {
+      return isAuthenticated() &&
+        firestore.get(
+          /databases/(default)/documents/projectMembers/$(request.auth.uid)
+        ).data.projectId == projectId;
+    }
+
+    match /floorplans/{projectId}/{allPaths=**} {
+      allow read: if isTeam() || isProjectClient(projectId);
+      allow write: if isTeam();
+    }
+  }
+}
