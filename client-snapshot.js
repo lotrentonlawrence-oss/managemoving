@@ -41,6 +41,9 @@ const floorWidthFt = document.getElementById("floorWidthFt");
 const floorLengthFt = document.getElementById("floorLengthFt");
 const floorSqft = document.getElementById("floorSqft");
 const floorSourceNote = document.getElementById("floorSourceNote");
+const floorImportStatus = document.getElementById("floorImportStatus");
+const floorManualOverride = document.getElementById("floorManualOverride");
+const applyImportedFloorPlanBtn = document.getElementById("applyImportedFloorPlanBtn");
 const itemForm = document.getElementById("itemForm");
 const itemHint = document.getElementById("itemHint");
 const auctionForm = document.getElementById("auctionForm");
@@ -74,6 +77,24 @@ function setSaveNote(text) {
 
 function setFloorSourceNote(text) {
   floorSourceNote.textContent = text || "";
+}
+
+function setFloorImportStatus(text) {
+  floorImportStatus.textContent = text || "";
+}
+
+function importedFloorPlanFromProject(project) {
+  if (!project || !project.floorPlanImported) return null;
+  const imported = project.floorPlanImported;
+  const dimensions = imported.dimensions || {};
+  return {
+    floorPlanUrl: imported.floorPlanUrl || "",
+    source: imported.source || "Data provider",
+    sourceUrl: imported.sourceUrl || "",
+    widthFt: Number(dimensions.widthFt || 0),
+    lengthFt: Number(dimensions.lengthFt || 0),
+    sqft: Number(dimensions.sqft || 0)
+  };
 }
 
 function forceAddressInputEditable(input) {
@@ -330,6 +351,7 @@ async function saveSnapshotChanges() {
     hoursAtHome: Number(hoursAtHomeInput.value || 0),
     contractors: toContractorArray(contractorsInput.value),
     teamNotes: teamNotesInput.value.trim(),
+    floorPlanManualOverride: floorManualOverride.checked,
     floorPlanDimensions: {
       widthFt: Number(floorWidthFt.value || 0),
       lengthFt: Number(floorLengthFt.value || 0),
@@ -346,10 +368,14 @@ function parseLookupResult(result) {
   const floorPlanUrl = result && result.floorPlanUrl ? String(result.floorPlanUrl) : "";
   const source = result && result.source ? String(result.source) : "Data provider";
   const sourceUrl = result && result.sourceUrl ? String(result.sourceUrl) : "";
+  const provider = result && result.provider ? String(result.provider) : "";
+  const appliedToDisplay = result && result.appliedToDisplay === true;
   return {
     floorPlanUrl,
     source,
     sourceUrl,
+    provider,
+    appliedToDisplay,
     widthFt: Number(dimensions.widthFt || 0),
     lengthFt: Number(dimensions.lengthFt || 0),
     sqft: Number(dimensions.sqft || 0)
@@ -378,7 +404,8 @@ async function runFloorPlanLookup() {
     },
     body: JSON.stringify({
       projectId,
-      address
+      address,
+      preserveManual: floorManualOverride.checked
     })
   });
 
@@ -391,26 +418,19 @@ async function runFloorPlanLookup() {
     throw new Error("No floor plan image returned for this address.");
   }
 
-  floorWidthFt.value = parsed.widthFt || "";
-  floorLengthFt.value = parsed.lengthFt || "";
-  floorSqft.value = parsed.sqft || "";
-  setFloorSourceNote(parsed.sourceUrl ? `Source: ${parsed.source} (${parsed.sourceUrl})` : `Source: ${parsed.source}`);
+  clientAddressInput.value = address;
+  floorLookupAddress.value = address;
 
-  await updateDoc(doc(db, "projects", projectId), {
-    clientAddress: address,
-    floorPlanUrl: parsed.floorPlanUrl,
-    floorPlanDimensions: {
-      widthFt: parsed.widthFt,
-      lengthFt: parsed.lengthFt,
-      sqft: parsed.sqft
-    },
-    floorPlanSource: {
-      name: parsed.source,
-      url: parsed.sourceUrl,
-      importedAt: serverTimestamp()
-    },
-    updatedAt: serverTimestamp()
-  });
+  if (!floorManualOverride.checked || parsed.appliedToDisplay) {
+    floorWidthFt.value = parsed.widthFt || "";
+    floorLengthFt.value = parsed.lengthFt || "";
+    floorSqft.value = parsed.sqft || "";
+    setFloorImportStatus("Imported floor plan applied to display.");
+  } else {
+    setFloorImportStatus("Imported floor plan saved. Manual override is on, so displayed plan was not replaced.");
+  }
+  const sourceText = parsed.provider ? `${parsed.source} (${parsed.provider})` : parsed.source;
+  setFloorSourceNote(parsed.sourceUrl ? `Source: ${sourceText} (${parsed.sourceUrl})` : `Source: ${sourceText}`);
 }
 
 function queueAutosave() {
@@ -437,6 +457,7 @@ function queueAutosave() {
   hoursAtHomeInput,
   contractorsInput,
   teamNotesInput,
+  floorManualOverride,
   floorWidthFt,
   floorLengthFt,
   floorSqft
@@ -535,19 +556,66 @@ floorUploadForm.addEventListener("submit", async (event) => {
   const fileRef = ref(storage, `floorplans/${projectId}/${Date.now()}-${file.name}`);
   await uploadBytes(fileRef, file);
   const floorPlanUrl = await getDownloadURL(fileRef);
-  await updateDoc(doc(db, "projects", projectId), { floorPlanUrl, updatedAt: serverTimestamp() });
+  floorManualOverride.checked = true;
+  await updateDoc(doc(db, "projects", projectId), {
+    floorPlanUrl,
+    floorPlanManualOverride: true,
+    floorPlanSource: {
+      name: "Manual Upload",
+      url: ""
+    },
+    updatedAt: serverTimestamp()
+  });
+  setFloorImportStatus("Manual floor plan uploaded and override enabled.");
   floorImage.value = "";
 });
 
 floorLookupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  setFloorSourceNote("Looking up latest floor plan records...");
+  setFloorImportStatus("Looking up latest floor plan records...");
   try {
     await runFloorPlanLookup();
-    setFloorSourceNote("Floor plan imported from property data source.");
+    if (!floorManualOverride.checked) {
+      setFloorImportStatus("Floor plan imported and displayed.");
+    }
   } catch (err) {
-    setFloorSourceNote(err.message || "Unable to import floor plan from address.");
+    setFloorImportStatus(err.message || "Unable to import floor plan from address.");
   }
+});
+
+floorManualOverride.addEventListener("change", async () => {
+  if (suppressAutosave) return;
+  await saveSnapshotChanges().catch(() => {});
+  if (floorManualOverride.checked) {
+    setFloorImportStatus("Manual override is on. Imports will save but not replace displayed floor plan.");
+    return;
+  }
+  setFloorImportStatus("Auto-apply is on. New imports will replace displayed floor plan.");
+});
+
+applyImportedFloorPlanBtn.addEventListener("click", async () => {
+  const imported = importedFloorPlanFromProject(currentProject);
+  if (!imported || !imported.floorPlanUrl) {
+    setFloorImportStatus("No imported floor plan available yet.");
+    return;
+  }
+  await updateDoc(doc(db, "projects", projectId), {
+    floorPlanUrl: imported.floorPlanUrl,
+    floorPlanDimensions: {
+      widthFt: imported.widthFt,
+      lengthFt: imported.lengthFt,
+      sqft: imported.sqft
+    },
+    floorPlanSource: {
+      name: imported.source,
+      url: imported.sourceUrl,
+      importedAt: serverTimestamp()
+    },
+    floorPlanManualOverride: false,
+    updatedAt: serverTimestamp()
+  });
+  floorManualOverride.checked = false;
+  setFloorImportStatus("Latest imported floor plan applied.");
 });
 
 itemForm.addEventListener("submit", async (event) => {
@@ -638,10 +706,22 @@ observeAuth(async (user) => {
     hoursAtHomeInput.value = Number(currentProject.hoursAtHome || 0);
     contractorsInput.value = (currentProject.contractors || []).join("\n");
     teamNotesInput.value = currentProject.teamNotes || "";
+    floorManualOverride.checked = currentProject.floorPlanManualOverride === true;
     const dimensions = currentProject.floorPlanDimensions || {};
     floorWidthFt.value = Number(dimensions.widthFt || 0) || "";
     floorLengthFt.value = Number(dimensions.lengthFt || 0) || "";
     floorSqft.value = Number(dimensions.sqft || 0) || "";
+    const imported = importedFloorPlanFromProject(currentProject);
+    applyImportedFloorPlanBtn.disabled = !imported || !imported.floorPlanUrl;
+    if (floorManualOverride.checked) {
+      setFloorImportStatus(imported && imported.floorPlanUrl
+        ? "Manual override is on. Imported plan is available and can be applied manually."
+        : "Manual override is on. Import keeps your displayed floor plan unchanged.");
+    } else {
+      setFloorImportStatus(imported && imported.floorPlanUrl
+        ? "Auto-apply mode is on. Latest import is shown on the floor plan."
+        : "");
+    }
     if (currentProject.floorPlanSource && currentProject.floorPlanSource.name) {
       const source = currentProject.floorPlanSource.name;
       const sourceUrl = currentProject.floorPlanSource.url || "";
