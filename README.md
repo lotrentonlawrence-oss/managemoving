@@ -14,6 +14,7 @@ Valley, AL.
 - `login.html`, `login.js` — portal sign-in entry point
 - `client.html`, `client.js` — client-only project dashboard
 - `team.html`, `team.js` — business team dashboard for project updates
+- `client-snapshot.html`, `client-snapshot.js` — team-only detailed client page with autosave
 - `portal.css` — shared styling for portal pages
 - `portal.js` — shared Firebase auth/routing helpers
 - `firebase-config.js` — Firebase web app config placeholders
@@ -54,9 +55,12 @@ constant in `script.js`.
 3. Enable **Firestore Database** and **Storage**.
 4. Replace placeholders in `firebase-config.js` with your Firebase web config.
 5. Publish `firebase.rules` and `storage.rules`.
-6. Sign in to `team.html` as `trenton@sweethometransitions.com` and use
-   **Client Account Setup** to create client credentials and auto-link each
-   account to the selected `projectId`.
+6. Sign in to `team.html` as `trenton@sweethometransitions.com`:
+   - Add potential/active/completed transitions in the pipeline board
+   - Use **Client Account Setup** to create client credentials and link each
+     account to a selected `projectId`
+   - Open **Client Snapshot** from the pipeline card to manage project details,
+     floor plan, auctions, and notes with autosave.
 
 Firebase CLI deploy (from this folder):
 
