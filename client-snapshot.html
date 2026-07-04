@@ -38,7 +38,8 @@
         </div>
         <div class="stack-form">
           <label for="clientAddressInput">Address</label>
-          <input id="clientAddressInput" class="address-input" type="text" autocomplete="street-address">
+          <input id="clientAddressInput" class="address-input" type="text" autocomplete="street-address" list="clientAddressSuggestions">
+          <datalist id="clientAddressSuggestions"></datalist>
         </div>
         <div class="stack-form">
           <label for="pipelineStageInput">Stage</label>
@@ -74,7 +75,8 @@
       <form id="floorLookupForm" class="split-two floor-lookup">
         <div class="stack-form">
           <label for="floorLookupAddress">Property Address</label>
-          <input id="floorLookupAddress" class="address-input" type="text" autocomplete="street-address" placeholder="123 Main St, Huntsville, AL 35801">
+          <input id="floorLookupAddress" class="address-input" type="text" autocomplete="street-address" list="floorLookupAddressSuggestions" placeholder="123 Main St, Huntsville, AL 35801">
+          <datalist id="floorLookupAddressSuggestions"></datalist>
         </div>
         <div class="stack-form floor-lookup-action">
           <label>&nbsp;</label>
