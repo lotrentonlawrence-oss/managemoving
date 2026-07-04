@@ -48,6 +48,7 @@ const drawFloorShapeBtn = document.getElementById("drawFloorShapeBtn");
 const clearFloorShapeBtn = document.getElementById("clearFloorShapeBtn");
 const floorShapeWidthFtInput = document.getElementById("floorShapeWidthFt");
 const floorShapeLengthFtInput = document.getElementById("floorShapeLengthFt");
+const floorRoomsList = document.getElementById("floorRoomsList");
 const itemForm = document.getElementById("itemForm");
 const itemIconType = document.getElementById("itemIconType");
 const itemHint = document.getElementById("itemHint");
@@ -76,6 +77,8 @@ let drawShapeMode = false;
 let drawShapeStart = null;
 let drawShapeDraft = null;
 let floorItemsCache = [];
+let floorRoomsCache = [];
+let roomSaveTimer = null;
 
 const ICON_EMOJI = {
   tv: "📺",
@@ -491,22 +494,56 @@ clientAddressInput.addEventListener("change", () => {
   floorLookupAddress.value = clientAddressInput.value.trim();
 });
 
-function normalizedFloorShape(project) {
-  const shape = project?.floorPlanShape || {};
-  const x = Number(shape.xPct);
-  const y = Number(shape.yPct);
-  const width = Number(shape.widthPct);
-  const height = Number(shape.heightPct);
-  if (![x, y, width, height].every((n) => Number.isFinite(n) && n >= 0)) return null;
-  if (width <= 0 || height <= 0) return null;
-  return {
-    xPct: x,
-    yPct: y,
-    widthPct: width,
-    heightPct: height,
-    widthFt: Number(shape.widthFt || floorShapeWidthFtInput.value || floorWidthFt.value || 0),
-    lengthFt: Number(shape.lengthFt || floorShapeLengthFtInput.value || floorLengthFt.value || 0)
-  };
+function normalizedFloorRooms(project) {
+  const rooms = Array.isArray(project?.floorPlanRooms) ? project.floorPlanRooms : [];
+  if (!rooms.length && project?.floorPlanShape) {
+    const s = project.floorPlanShape;
+    return [{
+      id: "room-legacy",
+      name: "Room 1",
+      xPct: Number(s.xPct || 0),
+      yPct: Number(s.yPct || 0),
+      widthPct: Number(s.widthPct || 0),
+      heightPct: Number(s.heightPct || 0),
+      widthFt: Number(s.widthFt || 0),
+      lengthFt: Number(s.lengthFt || 0)
+    }].filter((room) => room.widthPct > 0 && room.heightPct > 0);
+  }
+  return rooms
+    .map((room, index) => ({
+      id: room.id || `room-${index + 1}`,
+      name: room.name || `Room ${index + 1}`,
+      xPct: Number(room.xPct || 0),
+      yPct: Number(room.yPct || 0),
+      widthPct: Number(room.widthPct || 0),
+      heightPct: Number(room.heightPct || 0),
+      widthFt: Number(room.widthFt || 0),
+      lengthFt: Number(room.lengthFt || 0)
+    }))
+    .filter((room) => room.widthPct > 0 && room.heightPct > 0);
+}
+
+function overallShapeFromRooms(rooms) {
+  if (!rooms.length) return null;
+  const minX = Math.min(...rooms.map((r) => r.xPct));
+  const minY = Math.min(...rooms.map((r) => r.yPct));
+  const maxX = Math.max(...rooms.map((r) => r.xPct + r.widthPct));
+  const maxY = Math.max(...rooms.map((r) => r.yPct + r.heightPct));
+  const widthPct = Math.max(0, maxX - minX);
+  const heightPct = Math.max(0, maxY - minY);
+
+  const scaleX = rooms
+    .filter((r) => r.widthFt > 0 && r.widthPct > 0)
+    .map((r) => r.widthFt / r.widthPct);
+  const scaleY = rooms
+    .filter((r) => r.lengthFt > 0 && r.heightPct > 0)
+    .map((r) => r.lengthFt / r.heightPct);
+  const avgScaleX = scaleX.length ? scaleX.reduce((a, b) => a + b, 0) / scaleX.length : 0;
+  const avgScaleY = scaleY.length ? scaleY.reduce((a, b) => a + b, 0) / scaleY.length : 0;
+  const widthFt = avgScaleX > 0 ? widthPct * avgScaleX : Number(floorWidthFt.value || 0);
+  const lengthFt = avgScaleY > 0 ? heightPct * avgScaleY : Number(floorLengthFt.value || 0);
+
+  return { xPct: minX, yPct: minY, widthPct, heightPct, widthFt, lengthFt };
 }
 
 function itemSizePct(item, shape) {
@@ -520,26 +557,34 @@ function itemSizePct(item, shape) {
   return { widthPct, heightPct };
 }
 
-function renderShapeOverlay(shape) {
-  if (!shape) return;
-  const shapeEl = document.createElement("div");
-  shapeEl.className = "floor-shape";
-  shapeEl.style.left = `${shape.xPct}%`;
-  shapeEl.style.top = `${shape.yPct}%`;
-  shapeEl.style.width = `${shape.widthPct}%`;
-  shapeEl.style.height = `${shape.heightPct}%`;
+function renderRoomsOverlay(rooms) {
+  rooms.forEach((room) => {
+    const roomEl = document.createElement("div");
+    roomEl.className = "floor-room";
+    roomEl.style.left = `${room.xPct}%`;
+    roomEl.style.top = `${room.yPct}%`;
+    roomEl.style.width = `${room.widthPct}%`;
+    roomEl.style.height = `${room.heightPct}%`;
+    roomEl.innerHTML = `<div class="floor-room-label">${room.name} (${room.widthFt || "?"}′ × ${room.lengthFt || "?"}′)</div>`;
+    teamFloorCanvas.appendChild(roomEl);
+  });
 
+  const shape = overallShapeFromRooms(rooms);
+  if (!shape) return;
   const widthLabel = document.createElement("div");
   widthLabel.className = "shape-label horizontal";
-  widthLabel.textContent = shape.widthFt > 0 ? `${shape.widthFt.toFixed(1)} ft` : "width";
+  widthLabel.style.left = `${shape.xPct + shape.widthPct / 2}%`;
+  widthLabel.style.top = `${Math.max(0, shape.yPct - 2)}%`;
+  widthLabel.textContent = shape.widthFt > 0 ? `${shape.widthFt.toFixed(1)} ft` : "";
 
   const lengthLabel = document.createElement("div");
   lengthLabel.className = "shape-label vertical";
-  lengthLabel.textContent = shape.lengthFt > 0 ? `${shape.lengthFt.toFixed(1)} ft` : "length";
+  lengthLabel.style.left = `${Math.max(0, shape.xPct - 1)}%`;
+  lengthLabel.style.top = `${shape.yPct + shape.heightPct / 2}%`;
+  lengthLabel.textContent = shape.lengthFt > 0 ? `${shape.lengthFt.toFixed(1)} ft` : "";
 
-  shapeEl.appendChild(widthLabel);
-  shapeEl.appendChild(lengthLabel);
-  teamFloorCanvas.appendChild(shapeEl);
+  teamFloorCanvas.appendChild(widthLabel);
+  teamFloorCanvas.appendChild(lengthLabel);
 }
 
 function renderShapeDraft() {
@@ -554,17 +599,19 @@ function renderShapeDraft() {
 }
 
 async function saveFloorShape(shape) {
-  await updateDoc(doc(db, "projects", projectId), {
-    floorPlanShape: shape ? {
-      xPct: shape.xPct,
-      yPct: shape.yPct,
-      widthPct: shape.widthPct,
-      heightPct: shape.heightPct,
-      widthFt: Number(shape.widthFt || 0),
-      lengthFt: Number(shape.lengthFt || 0)
-    } : null,
-    updatedAt: serverTimestamp()
-  });
+  const nextRooms = shape ? [...floorRoomsCache, {
+    id: `room-${Date.now()}`,
+    name: `Room ${floorRoomsCache.length + 1}`,
+    xPct: shape.xPct,
+    yPct: shape.yPct,
+    widthPct: shape.widthPct,
+    heightPct: shape.heightPct,
+    widthFt: Number(shape.widthFt || 0),
+    lengthFt: Number(shape.lengthFt || 0)
+  }] : [];
+  floorRoomsCache = nextRooms;
+  currentProject.floorPlanRooms = nextRooms;
+  queueSaveRooms();
 }
 
 function canvasPointPct(event) {
@@ -583,11 +630,64 @@ function rectFromPoints(a, b) {
   return { xPct, yPct, widthPct, heightPct };
 }
 
+function deriveFloorMetricsFromRooms(rooms) {
+  const shape = overallShapeFromRooms(rooms);
+  if (!shape) return { widthFt: 0, lengthFt: 0, sqft: 0 };
+  const totalSqft = rooms.reduce((sum, r) => sum + (Number(r.widthFt || 0) * Number(r.lengthFt || 0)), 0);
+  return {
+    widthFt: Number(shape.widthFt || 0),
+    lengthFt: Number(shape.lengthFt || 0),
+    sqft: totalSqft > 0 ? totalSqft : Number(shape.widthFt || 0) * Number(shape.lengthFt || 0)
+  };
+}
+
+function queueSaveRooms() {
+  clearTimeout(roomSaveTimer);
+  roomSaveTimer = setTimeout(async () => {
+    const metrics = deriveFloorMetricsFromRooms(floorRoomsCache);
+    floorWidthFt.value = metrics.widthFt ? metrics.widthFt.toFixed(1) : "";
+    floorLengthFt.value = metrics.lengthFt ? metrics.lengthFt.toFixed(1) : "";
+    floorSqft.value = metrics.sqft ? Math.round(metrics.sqft) : "";
+    await updateDoc(doc(db, "projects", projectId), {
+      floorPlanRooms: floorRoomsCache,
+      floorPlanDimensions: {
+        widthFt: metrics.widthFt,
+        lengthFt: metrics.lengthFt,
+        sqft: metrics.sqft
+      },
+      updatedAt: serverTimestamp()
+    });
+    renderFloor(floorItemsCache);
+    renderRoomsEditor();
+  }, 120);
+}
+
+function renderRoomsEditor() {
+  if (!floorRoomsList) return;
+  floorRoomsList.innerHTML = "";
+  if (!floorRoomsCache.length) {
+    floorRoomsList.innerHTML = "<p class='muted'>No room boxes yet. Use Draw Floor Plan Shape.</p>";
+    return;
+  }
+
+  floorRoomsCache.forEach((room, index) => {
+    const row = document.createElement("div");
+    row.className = "room-row";
+    row.innerHTML = `
+      <input data-role="name" data-id="${room.id}" type="text" value="${room.name || `Room ${index + 1}`}">
+      <input data-role="widthFt" data-id="${room.id}" type="number" step="0.1" min="0" value="${Number(room.widthFt || 0) || ""}" placeholder="Width ft">
+      <input data-role="lengthFt" data-id="${room.id}" type="number" step="0.1" min="0" value="${Number(room.lengthFt || 0) || ""}" placeholder="Length ft">
+      <button type="button" class="btn-ghost" data-role="delete" data-id="${room.id}">Delete</button>
+    `;
+    floorRoomsList.appendChild(row);
+  });
+}
+
 function markerEl(itemId, item) {
   const el = document.createElement("div");
   el.className = "floor-marker";
   el.dataset.id = itemId;
-  const shape = normalizedFloorShape(currentProject);
+  const shape = overallShapeFromRooms(normalizedFloorRooms(currentProject));
   const size = itemSizePct(item, shape);
   el.style.left = `${item.x || 50}%`;
   el.style.top = `${item.y || 50}%`;
@@ -634,7 +734,7 @@ function renderFloor(items = []) {
   teamFloorCanvas.innerHTML = "";
   teamFloorCanvas.style.backgroundImage = currentProject.floorPlanUrl ? `url('${currentProject.floorPlanUrl}')` : "none";
   teamFloorCanvas.classList.toggle("draw-mode", drawShapeMode);
-  renderShapeOverlay(normalizedFloorShape(currentProject));
+  renderRoomsOverlay(normalizedFloorRooms(currentProject));
   renderShapeDraft();
   items.forEach(({ id, data }) => {
     const el = markerEl(id, data);
@@ -764,24 +864,45 @@ drawFloorShapeBtn.addEventListener("click", () => {
 
 clearFloorShapeBtn.addEventListener("click", async () => {
   currentProject.floorPlanShape = null;
+  currentProject.floorPlanRooms = [];
+  floorRoomsCache = [];
   floorShapeWidthFtInput.value = "";
   floorShapeLengthFtInput.value = "";
   await saveFloorShape(null);
   renderFloor(floorItemsCache);
+  renderRoomsEditor();
   itemHint.textContent = "Floor shape cleared.";
 });
 
-[floorShapeWidthFtInput, floorShapeLengthFtInput].forEach((input) => {
-  input.addEventListener("change", async () => {
-    const shape = normalizedFloorShape(currentProject);
-    if (!shape) return;
-    shape.widthFt = Number(floorShapeWidthFtInput.value || shape.widthFt || 0);
-    shape.lengthFt = Number(floorShapeLengthFtInput.value || shape.lengthFt || 0);
-    currentProject.floorPlanShape = shape;
-    await saveFloorShape(shape);
-    renderFloor(floorItemsCache);
+function handleRoomFieldUpdate(event) {
+  const target = event.target;
+  const id = target.dataset.id;
+  const role = target.dataset.role;
+  if (!id || !role) return;
+  floorRoomsCache = floorRoomsCache.map((room) => {
+    if (room.id !== id) return room;
+    if (role === "name") return { ...room, name: target.value.trim() || room.name };
+    if (role === "widthFt") return { ...room, widthFt: Number(target.value || 0) };
+    if (role === "lengthFt") return { ...room, lengthFt: Number(target.value || 0) };
+    return room;
   });
-});
+  currentProject.floorPlanRooms = floorRoomsCache;
+  queueSaveRooms();
+}
+
+if (floorRoomsList) {
+  floorRoomsList.addEventListener("change", handleRoomFieldUpdate);
+  floorRoomsList.addEventListener("input", handleRoomFieldUpdate);
+
+  floorRoomsList.addEventListener("click", (event) => {
+    const target = event.target;
+    if (target.dataset.role !== "delete") return;
+    const id = target.dataset.id;
+    floorRoomsCache = floorRoomsCache.filter((room) => room.id !== id);
+    currentProject.floorPlanRooms = floorRoomsCache;
+    queueSaveRooms();
+  });
+}
 
 floorManualOverride.addEventListener("change", async () => {
   if (suppressAutosave) return;
@@ -913,13 +1034,15 @@ observeAuth(async (user) => {
     contractorsInput.value = (currentProject.contractors || []).join("\n");
     teamNotesInput.value = currentProject.teamNotes || "";
     floorManualOverride.checked = currentProject.floorPlanManualOverride === true;
-    const shape = normalizedFloorShape(currentProject);
-    floorShapeWidthFtInput.value = shape?.widthFt ? Number(shape.widthFt) : "";
-    floorShapeLengthFtInput.value = shape?.lengthFt ? Number(shape.lengthFt) : "";
+    floorRoomsCache = normalizedFloorRooms(currentProject);
+    const lastRoom = floorRoomsCache[floorRoomsCache.length - 1];
+    floorShapeWidthFtInput.value = lastRoom?.widthFt ? Number(lastRoom.widthFt) : "";
+    floorShapeLengthFtInput.value = lastRoom?.lengthFt ? Number(lastRoom.lengthFt) : "";
     const dimensions = currentProject.floorPlanDimensions || {};
     floorWidthFt.value = Number(dimensions.widthFt || 0) || "";
     floorLengthFt.value = Number(dimensions.lengthFt || 0) || "";
     floorSqft.value = Number(dimensions.sqft || 0) || "";
+    renderRoomsEditor();
     const imported = importedFloorPlanFromProject(currentProject);
     applyImportedFloorPlanBtn.disabled = !imported || !imported.floorPlanUrl;
     if (floorManualOverride.checked) {
