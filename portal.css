@@ -123,9 +123,16 @@ button:hover { background: var(--sage-dark); }
   align-items: center;
 }
 
+.split-lead {
+  display: grid;
+  grid-template-columns: 1fr 1fr .9fr .9fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
 .split-client {
   display: grid;
-  grid-template-columns: 1.2fr .8fr auto;
+  grid-template-columns: 1.2fr .8fr 1fr auto;
   gap: 10px;
   align-items: center;
 }
@@ -251,6 +258,10 @@ th, td {
   transform: translate(-50%, -50%);
   background: var(--navy);
   color: #fff;
+}
+
+a.btn-ghost {
+  text-decoration: none;
   padding: 6px 8px;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -271,8 +282,60 @@ th, td {
   margin-bottom: 10px;
 }
 
+.pipeline-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.pipeline-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pipeline-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: #f8fbf6;
+}
+
+.pipeline-card h4 {
+  margin: 0 0 6px;
+}
+
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.progress-track {
+  flex: 1;
+  height: 8px;
+  background: #dbe7d8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--sage-dark);
+}
+
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 900px) {
-  .split-two, .split-three, .split-client, .auction-summary {
+  .split-two, .split-three, .split-client, .split-lead, .auction-summary, .pipeline-columns, .snapshot-grid {
     grid-template-columns: 1fr;
   }
   .portal-header {
