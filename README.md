@@ -17,6 +17,8 @@ Valley, AL.
   `trenton@sweethometransitions.com`
 - `CNAME` — tells GitHub Pages to serve this site at
   `sweethometransitions.com`
+- `robots.txt` — search engine crawl directives + sitemap location
+- `sitemap.xml` — XML sitemap for indexing
 - `EMAIL_SETUP.md` — step-by-step guide to deploy the Apps Script mailer
 - `DOMAIN_SETUP.md` — DNS records needed at the domain registrar to point
   the domain at GitHub Pages, plus Google Workspace MX records for email
