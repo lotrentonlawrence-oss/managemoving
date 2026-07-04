@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="portal.css?v=20260704j">
+  <link rel="stylesheet" href="portal.css?v=20260704k">
 </head>
 <body>
   <header class="portal-header">
@@ -110,7 +110,24 @@
       </div>
       <div class="floor-workflow-row">
         <button id="drawFloorShapeBtn" type="button" class="btn-ghost">Draw Floor Plan Shape</button>
-        <button id="clearFloorShapeBtn" type="button" class="btn-ghost">Clear All Rooms</button>
+        <button id="clearFloorShapeBtn" type="button" class="btn-ghost">Clear Current Level Rooms</button>
+      </div>
+      <div class="floor-workflow-row">
+        <div class="stack-form">
+          <label for="floorLevelsCount">Levels in Home</label>
+          <input id="floorLevelsCount" type="number" min="1" max="6" value="1">
+        </div>
+        <div class="stack-form">
+          <label for="activeFloorLevel">Current Level</label>
+          <select id="activeFloorLevel">
+            <option value="1">Level 1</option>
+          </select>
+        </div>
+        <div class="zoom-controls">
+          <button id="zoomOutBtn" type="button" class="btn-ghost">Zoom Out</button>
+          <button id="zoomResetBtn" type="button" class="btn-ghost">Reset</button>
+          <button id="zoomInBtn" type="button" class="btn-ghost">Zoom In</button>
+        </div>
       </div>
       <div class="split-three floor-meta-grid">
         <div class="stack-form">
@@ -127,6 +144,18 @@
         </div>
       </div>
       <div id="floorRoomsList" class="rooms-list"></div>
+      <div class="panel icon-key-panel">
+        <h3>Icon Key (Drag to map)</h3>
+        <div id="iconPalette" class="icon-palette">
+          <button type="button" class="icon-palette-item" draggable="true" data-icon="tv">📺 TV</button>
+          <button type="button" class="icon-palette-item" draggable="true" data-icon="sofa">🛋️ Couch</button>
+          <button type="button" class="icon-palette-item" draggable="true" data-icon="dresser">🗄️ Dresser</button>
+          <button type="button" class="icon-palette-item" draggable="true" data-icon="bed">🛏️ Bed</button>
+          <button type="button" class="icon-palette-item" draggable="true" data-icon="table">🪑 Table</button>
+          <button type="button" class="icon-palette-item" draggable="true" data-icon="chair">🪑 Chair</button>
+          <button type="button" class="icon-palette-item" draggable="true" data-icon="lamp">💡 Lamp</button>
+        </div>
+      </div>
       <p id="floorSourceNote" class="muted"></p>
       <p id="floorImportStatus" class="muted"></p>
       <div class="split-two">
@@ -191,6 +220,6 @@
     </section>
   </main>
 
-  <script type="module" src="client-snapshot.js?v=20260704j"></script>
+  <script type="module" src="client-snapshot.js?v=20260704k"></script>
 </body>
 </html>
