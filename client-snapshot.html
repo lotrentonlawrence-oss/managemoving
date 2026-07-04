@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="portal.css?v=20260704g">
+  <link rel="stylesheet" href="portal.css?v=20260704h">
 </head>
 <body>
   <header class="portal-header">
@@ -108,6 +108,24 @@
         </label>
         <button id="applyImportedFloorPlanBtn" type="button" class="btn-ghost">Apply Latest Imported Floor Plan</button>
       </div>
+      <div class="floor-workflow-row">
+        <button id="drawFloorShapeBtn" type="button" class="btn-ghost">Draw Floor Plan Shape</button>
+        <button id="clearFloorShapeBtn" type="button" class="btn-ghost">Clear Shape</button>
+      </div>
+      <div class="split-three floor-meta-grid">
+        <div class="stack-form">
+          <label for="floorShapeWidthFt">Shape Width Side (ft)</label>
+          <input id="floorShapeWidthFt" type="number" step="0.1" min="0" placeholder="Ex: 34">
+        </div>
+        <div class="stack-form">
+          <label for="floorShapeLengthFt">Shape Length Side (ft)</label>
+          <input id="floorShapeLengthFt" type="number" step="0.1" min="0" placeholder="Ex: 52">
+        </div>
+        <div class="stack-form">
+          <label for="floorShapeScaleNote">Shape Scale</label>
+          <input id="floorShapeScaleNote" type="text" value="Used to size icons proportionally" disabled>
+        </div>
+      </div>
       <p id="floorSourceNote" class="muted"></p>
       <p id="floorImportStatus" class="muted"></p>
       <div class="split-two">
@@ -117,8 +135,22 @@
           <button type="submit">Upload</button>
         </form>
         <form id="itemForm" class="stack-form">
+          <label for="itemIconType">Icon Type</label>
+          <select id="itemIconType">
+            <option value="sofa">Couch</option>
+            <option value="tv">TV</option>
+            <option value="dresser">Dresser</option>
+            <option value="bed">Bed</option>
+            <option value="table">Table</option>
+            <option value="chair">Chair</option>
+            <option value="lamp">Lamp</option>
+          </select>
           <label for="itemLabel">Item Label</label>
           <input id="itemLabel" type="text" placeholder="Sofa, Lamp, Dining Table">
+          <label for="itemWidthFt">Item Width (ft)</label>
+          <input id="itemWidthFt" type="number" step="0.1" min="0" placeholder="Ex: 7">
+          <label for="itemDepthFt">Item Depth (ft)</label>
+          <input id="itemDepthFt" type="number" step="0.1" min="0" placeholder="Ex: 3">
           <label for="itemRoom">Room</label>
           <input id="itemRoom" type="text" placeholder="Living Room">
           <label for="itemNotes">Notes</label>
@@ -158,6 +190,6 @@
     </section>
   </main>
 
-  <script type="module" src="client-snapshot.js?v=20260704g"></script>
+  <script type="module" src="client-snapshot.js?v=20260704h"></script>
 </body>
 </html>
