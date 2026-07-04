@@ -21,6 +21,12 @@ function bearerToken(req) {
   return authHeader.slice(7).trim();
 }
 
+function cleanText(value, maxLen) {
+  const cleaned = String(value || "").trim();
+  if (!maxLen) return cleaned;
+  return cleaned.slice(0, maxLen);
+}
+
 function providerConfigs() {
   return [
     {
@@ -217,6 +223,63 @@ exports.floorPlanLookup = onRequest(
 
       const providerRuns = await Promise.allSettled(
         providers.map((provider) => callProvider(provider, address))
+      );
+
+      exports.inquiryIntake = onRequest(
+        {
+          region: "us-central1",
+          timeoutSeconds: 30,
+          memory: "256MiB"
+        },
+        async (req, res) => {
+          cors(res);
+          if (req.method === "OPTIONS") {
+            res.status(204).send("");
+            return;
+          }
+          if (req.method !== "POST") {
+            res.status(405).json({ error: "Method not allowed" });
+            return;
+          }
+
+          try {
+            const name = cleanText(req.body?.name, 120);
+            const phone = cleanText(req.body?.phone, 40);
+            const email = cleanText(req.body?.email, 120).toLowerCase();
+            const service = cleanText(req.body?.service, 120) || "Free Consultation";
+            const message = cleanText(req.body?.message, 3000);
+            const submittedAt = cleanText(req.body?.submittedAt, 80);
+
+            if (!name || !phone || !email) {
+              res.status(400).json({ error: "name, phone, and email are required" });
+              return;
+            }
+
+            await db.collection("projects").add({
+              title: name,
+              clientName: name,
+              clientEmail: email,
+              clientPhone: phone,
+              inquiryService: service,
+              inquiryMessage: message,
+              inquirySubmittedAt: submittedAt || null,
+              inquirySource: "website-contact-form",
+              pipelineStage: "potential",
+              pipelineProgress: 10,
+              contractors: [],
+              hoursAtHome: 0,
+              floorPlanUrl: "",
+              teamNotes: "",
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            res.status(200).json({ result: "ok" });
+          } catch (error) {
+            logger.error("inquiryIntake failed", error);
+            res.status(500).json({ error: "Unable to save inquiry to pipeline" });
+          }
+        }
       );
 
       const successes = providerRuns
