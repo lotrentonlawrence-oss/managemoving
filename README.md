@@ -22,6 +22,7 @@ Valley, AL.
 - `storage.rules` — Storage security rules for floor plan uploads
 - `firebase.json` / `.firebaserc` — Firebase project/deploy configuration
 - `firestore.indexes.json` — Firestore index config
+- `functions/` — Firebase Cloud Functions (`floorPlanLookup`, `inquiryIntake`)
 - `assets/logo.png` — primary brand logo used in header and footer
 - `apps-script/Code.gs` — Google Apps Script that emails contact-form
   submissions from `hello@sweethometransitions.com` to
@@ -47,6 +48,10 @@ The form on the site posts to a Google Apps Script Web App endpoint (see
 `apps-script/Code.gs`), which sends the inquiry as an email. Follow
 `EMAIL_SETUP.md` to deploy your own instance and wire up the `SCRIPT_URL`
 constant in `script.js`.
+
+The same inquiry submission also posts to the Firebase HTTPS function
+`inquiryIntake`, which auto-creates a **Potential Client** entry in
+`projects` for the Team pipeline dashboard.
 
 ## Portal setup (Firebase)
 
