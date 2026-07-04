@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Snapshot | Sweet Home Transitions</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <h1 id="snapshotTitle">Client Snapshot</h1>
+    <div class="header-actions">
+      <a href="./team.html" class="btn-ghost">Back to Pipeline</a>
+      <button id="logoutBtn" class="btn-ghost">Log Out</button>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <section class="panel">
+      <h2>Project Snapshot</h2>
+      <p class="muted">Edits autosave while typing.</p>
+      <form id="snapshotForm" class="snapshot-grid">
+        <div class="stack-form">
+          <label for="clientNameInput">Client Name</label>
+          <input id="clientNameInput" type="text">
+        </div>
+        <div class="stack-form">
+          <label for="clientEmailInput">Client Email</label>
+          <input id="clientEmailInput" type="email">
+        </div>
+        <div class="stack-form">
+          <label for="clientPhoneInput">Phone</label>
+          <input id="clientPhoneInput" type="text">
+        </div>
+        <div class="stack-form">
+          <label for="clientAddressInput">Address</label>
+          <input id="clientAddressInput" type="text">
+        </div>
+        <div class="stack-form">
+          <label for="pipelineStageInput">Stage</label>
+          <select id="pipelineStageInput">
+            <option value="potential">Potential Client</option>
+            <option value="active">Active Transition</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="stack-form">
+          <label for="pipelineProgressInput">Progress (%)</label>
+          <input id="pipelineProgressInput" type="number" min="0" max="100" step="1">
+        </div>
+        <div class="stack-form">
+          <label for="hoursAtHomeInput">Hours at Home</label>
+          <input id="hoursAtHomeInput" type="number" min="0" step="0.5">
+        </div>
+        <div class="stack-form full-width">
+          <label for="contractorsInput">Contractors (one per line)</label>
+          <textarea id="contractorsInput" rows="4"></textarea>
+        </div>
+        <div class="stack-form full-width">
+          <label for="teamNotesInput">Team Notes</label>
+          <textarea id="teamNotesInput" rows="5" placeholder="Transition notes, reminders, family preferences..."></textarea>
+        </div>
+      </form>
+      <p id="snapshotSaveNote" class="form-note"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Interactive Floor Plan</h2>
+      <p class="muted">Upload floor plan and place draggable item markers.</p>
+      <div class="split-two">
+        <form id="floorUploadForm" class="stack-form">
+          <label for="floorImage">Floor Plan Image</label>
+          <input id="floorImage" type="file" accept="image/*">
+          <button type="submit">Upload</button>
+        </form>
+        <form id="itemForm" class="stack-form">
+          <label for="itemLabel">Item Label</label>
+          <input id="itemLabel" type="text" placeholder="Sofa, Lamp, Dining Table">
+          <label for="itemRoom">Room</label>
+          <input id="itemRoom" type="text" placeholder="Living Room">
+          <label for="itemNotes">Notes</label>
+          <input id="itemNotes" type="text" placeholder="Against north wall">
+          <button type="submit">Add Item (click map to place)</button>
+        </form>
+      </div>
+      <div id="teamFloorCanvas" class="floor-canvas"></div>
+      <p id="itemHint" class="muted">Tip: click anywhere on the map before adding an item to set its position.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Auction Management</h2>
+      <form id="auctionForm" class="split-three">
+        <input id="auctionTitle" type="text" placeholder="Item name" required>
+        <select id="auctionStatus">
+          <option value="to_be_sold">To Be Sold</option>
+          <option value="sold">Sold</option>
+          <option value="unsold">Unsold</option>
+        </select>
+        <input id="auctionAmount" type="number" min="0" step="0.01" placeholder="Sale amount">
+        <button type="submit">Add Auction Item</button>
+      </form>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Status</th>
+              <th>Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="teamAuctionBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="client-snapshot.js"></script>
+</body>
+</html>
