@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="portal.css?v=20260704d">
+  <link rel="stylesheet" href="portal.css?v=20260704g">
 </head>
 <body>
   <header class="portal-header">
@@ -101,7 +101,15 @@
           <input id="floorSqft" type="number" step="1" min="0" placeholder="Auto">
         </div>
       </div>
+      <div class="floor-workflow-row">
+        <label class="checkbox-inline" for="floorManualOverride">
+          <input id="floorManualOverride" type="checkbox">
+          Keep manual floor plan edits (do not auto-replace displayed floor plan)
+        </label>
+        <button id="applyImportedFloorPlanBtn" type="button" class="btn-ghost">Apply Latest Imported Floor Plan</button>
+      </div>
       <p id="floorSourceNote" class="muted"></p>
+      <p id="floorImportStatus" class="muted"></p>
       <div class="split-two">
         <form id="floorUploadForm" class="stack-form">
           <label for="floorImage">Floor Plan Image</label>
@@ -150,6 +158,6 @@
     </section>
   </main>
 
-  <script type="module" src="client-snapshot.js?v=20260704e"></script>
+  <script type="module" src="client-snapshot.js?v=20260704g"></script>
 </body>
 </html>
