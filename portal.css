@@ -93,6 +93,17 @@ input.address-input.pac-target-input {
   -webkit-text-fill-color: var(--ink) !important;
 }
 
+input.address-input:focus,
+input.address-input.pac-target-input:focus,
+input.address-input:active,
+input.address-input.pac-target-input:active {
+  background-color: #fff !important;
+  color: var(--ink) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  -webkit-text-fill-color: var(--ink) !important;
+}
+
 input.address-input[readonly],
 input.address-input:disabled {
   background-color: #fff !important;
