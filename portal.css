@@ -83,6 +83,22 @@ input, select, button {
   font-size: 0.95rem;
 }
 
+input.address-input,
+input.address-input.pac-target-input {
+  background-color: #fff !important;
+  color: var(--ink) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  cursor: text !important;
+  -webkit-text-fill-color: var(--ink) !important;
+}
+
+input.address-input[readonly],
+input.address-input:disabled {
+  background-color: #fff !important;
+  opacity: 1 !important;
+}
+
 button {
   background: var(--sage);
   color: #fff;
