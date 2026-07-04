@@ -11,6 +11,7 @@ Valley, AL.
 - `index.html` — all page content and sections
 - `styles.css` — styling
 - `script.js` — mobile nav + contact form submission logic
+- `assets/logo.png` — primary brand logo used in header and footer
 - `apps-script/Code.gs` — Google Apps Script that emails contact-form
   submissions from `hello@sweethometransitions.com` to
   `trenton@sweethometransitions.com`
