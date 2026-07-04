@@ -56,6 +56,9 @@ constant in `script.js`.
    `team` custom claim), and `projectMembers/{uid}` docs for client accounts
    with their assigned `projectId`.
 
+Current team-access restriction: only `trenton@sweethometransitions.com`
+can access `team.html`.
+
 Data is organized under `projects/{projectId}` with subcollections:
 - `floorPlanItems` (for draggable item placements)
 - `auctionItems` (for sold/unsold tracking and amounts)
