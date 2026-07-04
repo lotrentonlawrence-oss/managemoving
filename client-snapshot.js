@@ -69,6 +69,16 @@ function setFloorSourceNote(text) {
   floorSourceNote.textContent = text || "";
 }
 
+function forceAddressInputsEditable() {
+  [clientAddressInput, floorLookupAddress].forEach((input) => {
+    if (!input) return;
+    input.disabled = false;
+    input.readOnly = false;
+    input.removeAttribute("disabled");
+    input.removeAttribute("readonly");
+  });
+}
+
 function loadGoogleMapsPlaces() {
   if (window.google && window.google.maps && window.google.maps.places) {
     return Promise.resolve(true);
@@ -103,6 +113,7 @@ function bindAddressAutocomplete(primaryInput, mirrorInput) {
   if (!window.google || !window.google.maps || !window.google.maps.places) return;
   if (primaryInput.dataset.mapsAutocompleteBound === "1") return;
   primaryInput.dataset.mapsAutocompleteBound = "1";
+  forceAddressInputsEditable();
 
   const autocomplete = new window.google.maps.places.Autocomplete(primaryInput, {
     types: ["address"],
@@ -117,10 +128,14 @@ function bindAddressAutocomplete(primaryInput, mirrorInput) {
     mirrorInput.value = formatted;
     queueAutosave();
   });
+
+  primaryInput.addEventListener("focus", forceAddressInputsEditable);
+  primaryInput.addEventListener("input", forceAddressInputsEditable);
 }
 
 async function initAddressAutocomplete() {
   try {
+    forceAddressInputsEditable();
     const loaded = await loadGoogleMapsPlaces();
     if (!loaded) return;
     bindAddressAutocomplete(clientAddressInput, floorLookupAddress);
@@ -269,6 +284,8 @@ function queueAutosave() {
 clientAddressInput.addEventListener("change", () => {
   floorLookupAddress.value = clientAddressInput.value.trim();
 });
+clientAddressInput.addEventListener("input", forceAddressInputsEditable);
+floorLookupAddress.addEventListener("input", forceAddressInputsEditable);
 
 function markerEl(itemId, item) {
   const el = document.createElement("div");
@@ -438,6 +455,7 @@ observeAuth(async (user) => {
     window.location.href = "./team.html";
     return;
   }
+  forceAddressInputsEditable();
   initAddressAutocomplete();
 
   const projectRef = doc(db, "projects", projectId);
