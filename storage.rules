@@ -11,8 +11,22 @@ service firebase.storage {
         request.auth.token.email.matches("^[Tt][Rr][Ee][Nn][Tt][Oo][Nn]@([Ss][Ww][Ee][Ee][Tt][Hh][Oo][Mm][Ee][Tt][Rr][Aa][Nn][Ss][Ii][Tt][Ii][Oo][Nn][Ss])\\.([Cc][Oo][Mm])$");
     }
 
+    function isTeamByClaim() {
+      return isAuthenticated() &&
+        request.auth.token.team == true;
+    }
+
+    function isTeamByRoleDoc() {
+      return isAuthenticated() &&
+        firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.role == "team";
+    }
+
     function isTeam() {
-      return isTrentonBusinessEmail();
+      return isTrentonBusinessEmail() ||
+        isTeamByClaim() ||
+        isTeamByRoleDoc();
     }
 
     function isProjectClient(projectId) {
