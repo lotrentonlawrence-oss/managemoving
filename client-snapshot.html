@@ -70,7 +70,32 @@
 
     <section class="panel">
       <h2>Interactive Floor Plan</h2>
-      <p class="muted">Upload floor plan and place draggable item markers.</p>
+      <p class="muted">Lookup by address, auto-import floor plan, then place draggable item markers.</p>
+      <form id="floorLookupForm" class="split-two floor-lookup">
+        <div class="stack-form">
+          <label for="floorLookupAddress">Property Address</label>
+          <input id="floorLookupAddress" type="text" placeholder="123 Main St, Huntsville, AL 35801">
+        </div>
+        <div class="stack-form floor-lookup-action">
+          <label>&nbsp;</label>
+          <button type="submit">Find & Import Floor Plan</button>
+        </div>
+      </form>
+      <div class="split-three floor-meta-grid">
+        <div class="stack-form">
+          <label for="floorWidthFt">Width (ft)</label>
+          <input id="floorWidthFt" type="number" step="0.1" min="0" placeholder="Auto">
+        </div>
+        <div class="stack-form">
+          <label for="floorLengthFt">Length (ft)</label>
+          <input id="floorLengthFt" type="number" step="0.1" min="0" placeholder="Auto">
+        </div>
+        <div class="stack-form">
+          <label for="floorSqft">Square Feet</label>
+          <input id="floorSqft" type="number" step="1" min="0" placeholder="Auto">
+        </div>
+      </div>
+      <p id="floorSourceNote" class="muted"></p>
       <div class="split-two">
         <form id="floorUploadForm" class="stack-form">
           <label for="floorImage">Floor Plan Image</label>
