@@ -429,6 +429,41 @@ a.btn-ghost {
   transform: translate(-100%, -50%) rotate(-90deg);
 }
 
+.floor-room {
+  position: absolute;
+  border: 2px solid #2d6a4f;
+  background: rgba(123, 155, 120, 0.12);
+}
+
+.floor-room-label {
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  font-size: 0.68rem;
+  background: rgba(30, 53, 80, 0.9);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.rooms-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.room-row {
+  display: grid;
+  grid-template-columns: 1.4fr .8fr .8fr auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: #f8fbf6;
+}
+
 .floor-controls {
   display: inline-flex;
   align-items: center;
@@ -489,7 +524,7 @@ a.btn-ghost {
 }
 
 @media (max-width: 900px) {
-  .split-two, .split-three, .split-client, .split-lead, .auction-summary, .pipeline-columns, .snapshot-grid {
+  .split-two, .split-three, .split-client, .split-lead, .auction-summary, .pipeline-columns, .snapshot-grid, .room-row {
     grid-template-columns: 1fr;
   }
   .portal-header {
