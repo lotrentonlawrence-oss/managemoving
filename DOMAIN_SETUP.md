@@ -17,6 +17,11 @@ and go to:
 Then add the records below. These can only be added by whoever has login
 access to that Squarespace account.
 
+> **Known issue:** Squarespace's DNS panel sometimes shows the default
+> parking-page A records and `www` CNAME as **greyed out / locked** and
+> won't let you edit or delete them. If that happens, skip to
+> **"Plan B: Move DNS to Cloudflare"** below — it's a guaranteed workaround.
+
 ## 1. Point the website to GitHub Pages
 
 Add these records in the Squarespace DNS Settings panel:
@@ -78,6 +83,51 @@ add:
    contact form uses to send inquiry notifications.
 4. Once mail is flowing, set up DKIM in Admin console → Apps → Google
    Workspace → Gmail → Authenticate email, for best deliverability.
+
+## Plan B: Move DNS to Cloudflare (if Squarespace's records are locked)
+
+Squarespace locks its default "preset" A records / `www` CNAME on some
+accounts and won't let you edit or delete them, even though it will still
+let you change **nameservers**. If you hit that wall, move DNS management to
+Cloudflare (free) instead — it fully replaces Squarespace's DNS panel, and
+your domain stays registered at Squarespace either way.
+
+1. Go to `cloudflare.com` → sign up for a free account.
+2. Click **Add a Site**, enter `sweethometransitions.com`, choose the **Free**
+   plan → Continue.
+3. Cloudflare scans and imports your existing DNS records automatically —
+   it should pick up the current MX (`smtp.google.com`) and TXT/SPF record
+   since those are already live. Review the imported list → Continue.
+4. Cloudflare shows you **2 nameservers** (e.g. `xxxx.ns.cloudflare.com` and
+   `yyyy.ns.cloudflare.com`). Copy both.
+5. Go back to **Squarespace → Domains → sweethometransitions.com →
+   Nameservers** (a separate tab/section from "DNS Settings"). Switch from
+   Squarespace's nameservers to **custom nameservers**, paste in the two
+   Cloudflare nameservers, remove the `nsb1-4.squarespacedns.com` ones, and
+   save. (Registrars almost always allow nameserver changes even when they
+   lock individual record editing.)
+6. Wait for Cloudflare to detect the change — usually well under an hour,
+   sometimes up to 24. Cloudflare emails you and its dashboard shows the
+   site status change from "Pending Nameserver Update" to "Active."
+7. Once Active, go to Cloudflare dashboard → your site → **DNS → Records**
+   and set up:
+
+   | Type  | Name | Content                          | Proxy status |
+   |-------|------|-----------------------------------|--------------|
+   | A     | @    | 185.199.108.153                   | DNS only     |
+   | A     | @    | 185.199.109.153                   | DNS only     |
+   | A     | @    | 185.199.110.153                   | DNS only     |
+   | A     | @    | 185.199.111.153                   | DNS only     |
+   | CNAME | www  | lotrentonlawrence-oss.github.io    | DNS only     |
+   | MX    | @    | smtp.google.com (priority 1)       | DNS only     |
+   | TXT   | @    | v=spf1 include:_spf.google.com ~all| DNS only     |
+
+   **Important:** set the proxy status (the cloud icon) to grey/"DNS only"
+   for all records, not orange/"Proxied." GitHub Pages needs to see the real
+   visitor IP and issue its own SSL certificate directly — Cloudflare's proxy
+   in front of it can block that.
+8. Delete any leftover default/parking A record Cloudflare may have imported
+   for `@` so it doesn't conflict with the 4 GitHub ones above.
 
 ## Why these two steps must be done manually
 
