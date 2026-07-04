@@ -11,6 +11,14 @@ Valley, AL.
 - `index.html` — all page content and sections
 - `styles.css` — styling
 - `script.js` — mobile nav + contact form submission logic
+- `login.html`, `login.js` — portal sign-in entry point
+- `client.html`, `client.js` — client-only project dashboard
+- `team.html`, `team.js` — business team dashboard for project updates
+- `portal.css` — shared styling for portal pages
+- `portal.js` — shared Firebase auth/routing helpers
+- `firebase-config.js` — Firebase web app config placeholders
+- `firebase.rules` — Firestore security rules for team/client access
+- `storage.rules` — Storage security rules for floor plan uploads
 - `assets/logo.png` — primary brand logo used in header and footer
 - `apps-script/Code.gs` — Google Apps Script that emails contact-form
   submissions from `hello@sweethometransitions.com` to
@@ -36,3 +44,18 @@ The form on the site posts to a Google Apps Script Web App endpoint (see
 `apps-script/Code.gs`), which sends the inquiry as an email. Follow
 `EMAIL_SETUP.md` to deploy your own instance and wire up the `SCRIPT_URL`
 constant in `script.js`.
+
+## Portal setup (Firebase)
+
+1. Create a Firebase project and web app.
+2. Enable **Authentication** with Email/Password.
+3. Enable **Firestore Database** and **Storage**.
+4. Replace placeholders in `firebase-config.js` with your Firebase web config.
+5. Publish `firebase.rules` and `storage.rules`.
+6. Create `users/{uid}` docs for team members with `role: "team"` (or add
+   `team` custom claim), and `projectMembers/{uid}` docs for client accounts
+   with their assigned `projectId`.
+
+Data is organized under `projects/{projectId}` with subcollections:
+- `floorPlanItems` (for draggable item placements)
+- `auctionItems` (for sold/unsold tracking and amounts)
