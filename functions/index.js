@@ -201,6 +201,7 @@ exports.floorPlanLookup = onRequest(
 
       const address = String(req.body?.address || "").trim();
       const projectId = String(req.body?.projectId || "").trim();
+      const preserveManual = req.body?.preserveManual === true;
       if (!address || !projectId) {
         res.status(400).json({ error: "Both address and projectId are required" });
         return;
@@ -238,18 +239,33 @@ exports.floorPlanLookup = onRequest(
 
       const payload = {
         clientAddress: address,
-        floorPlanUrl: stored.signedUrl,
-        floorPlanStoragePath: stored.storagePath,
-        floorPlanDimensions: winner.dimensions,
-        floorPlanSource: {
+        floorPlanImported: {
+          floorPlanUrl: stored.signedUrl,
+          storagePath: stored.storagePath,
+          dimensions: winner.dimensions,
+          source: winner.source,
+          sourceUrl: winner.sourceUrl,
+          provider: winner.provider,
+          importedAt: admin.firestore.FieldValue.serverTimestamp(),
+          sourceUpdatedAt: winner.rawUpdatedAt || null
+        },
+        floorPlanImportedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      if (!preserveManual) {
+        payload.floorPlanUrl = stored.signedUrl;
+        payload.floorPlanStoragePath = stored.storagePath;
+        payload.floorPlanDimensions = winner.dimensions;
+        payload.floorPlanSource = {
           name: winner.source,
           url: winner.sourceUrl,
           provider: winner.provider,
           importedAt: admin.firestore.FieldValue.serverTimestamp(),
           sourceUpdatedAt: winner.rawUpdatedAt || null
-        },
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      };
+        };
+        payload.floorPlanManualOverride = false;
+      }
 
       await db.doc(`projects/${projectId}`).set(payload, { merge: true });
 
@@ -258,7 +274,8 @@ exports.floorPlanLookup = onRequest(
         dimensions: winner.dimensions,
         source: winner.source,
         sourceUrl: winner.sourceUrl,
-        provider: winner.provider
+        provider: winner.provider,
+        appliedToDisplay: !preserveManual
       });
     } catch (error) {
       logger.error("floorPlanLookup failed", error);
