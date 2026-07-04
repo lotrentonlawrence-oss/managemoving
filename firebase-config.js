@@ -12,4 +12,4 @@ export const FIREBASE_CONFIG = {
 export const FLOOR_PLAN_LOOKUP_ENDPOINT = "";
 
 // Google Maps JavaScript API key with Places API enabled.
-export const GOOGLE_MAPS_API_KEY = "";
+export const GOOGLE_MAPS_API_KEY = "AIzaSyBZ01dh9n3VTIDOBFP68y1er2Ajmn9nAoI";
