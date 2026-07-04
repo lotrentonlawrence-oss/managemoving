@@ -52,9 +52,9 @@ constant in `script.js`.
 3. Enable **Firestore Database** and **Storage**.
 4. Replace placeholders in `firebase-config.js` with your Firebase web config.
 5. Publish `firebase.rules` and `storage.rules`.
-6. Create `users/{uid}` docs for team members with `role: "team"` (or add
-   `team` custom claim), and `projectMembers/{uid}` docs for client accounts
-   with their assigned `projectId`.
+6. Sign in to `team.html` as `trenton@sweethometransitions.com` and use
+   **Client Account Setup** to create client credentials and auto-link each
+   account to the selected `projectId`.
 
 Current team-access restriction: only `trenton@sweethometransitions.com`
 can access `team.html`.
