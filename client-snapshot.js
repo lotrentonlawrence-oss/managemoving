@@ -60,8 +60,8 @@ let mapsPlacesLoader = null;
 let placesPredictionService = null;
 let addressGuardObserver = null;
 let addressGuardTimer = null;
-const HUNTSVILLE_BIAS = { lat: 34.7304, lng: -86.5861 };
 let suggestionRequestSeq = 0;
+const predictionCache = new Map();
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -160,6 +160,23 @@ function showSuggestionMessage(listEl, message) {
   listEl.classList.add("visible");
 }
 
+function cachePredictions(query, predictions) {
+  if (!query) return;
+  predictionCache.set(query, predictions || []);
+  if (predictionCache.size > 40) {
+    const firstKey = predictionCache.keys().next().value;
+    predictionCache.delete(firstKey);
+  }
+}
+
+function getCachedPredictions(query) {
+  if (!query) return null;
+  if (predictionCache.has(query)) return predictionCache.get(query);
+  const keys = Array.from(predictionCache.keys());
+  const nearest = keys.find((k) => query.startsWith(k) && predictionCache.get(k)?.length);
+  return nearest ? predictionCache.get(nearest) : null;
+}
+
 function scoreAddressPrediction(prediction, inputValue) {
   const desc = String(prediction.description || "").toLowerCase();
   const q = String(inputValue || "").trim().toLowerCase();
@@ -198,33 +215,47 @@ function renderSuggestionList(listEl, predictions, primaryInput, mirrorInput) {
 }
 
 function requestAddressPredictions(value, listEl, primaryInput, mirrorInput) {
-  if (!value || value.trim().length < 1) {
+  const query = String(value || "").trim();
+  if (query.length < 2) {
     hideSuggestionList(listEl);
     return;
   }
+
+  const cached = getCachedPredictions(query);
+  if (cached && cached.length) {
+    const rankedCached = [...cached]
+      .map((prediction) => ({ prediction, score: scoreAddressPrediction(prediction, query) }))
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.prediction);
+    renderSuggestionList(listEl, rankedCached, primaryInput, mirrorInput);
+  }
+
   if (!placesPredictionService) {
     showSuggestionMessage(listEl, "Address suggestions unavailable.");
     return;
   }
-  showSuggestionMessage(listEl, "Searching...");
+  if (!cached || !cached.length) {
+    showSuggestionMessage(listEl, "Searching...");
+  }
   const requestId = ++suggestionRequestSeq;
 
   placesPredictionService.getPlacePredictions({
-    input: value.trim(),
+    input: query,
     types: ["address"],
     componentRestrictions: { country: "us" },
-    region: "us",
-    location: HUNTSVILLE_BIAS,
-    radius: 120000
+    region: "us"
   }, (predictions, status) => {
     if (requestId !== suggestionRequestSeq) return;
     const okStatus = window.google.maps.places.PlacesServiceStatus.OK;
     if (status !== okStatus || !predictions) {
-      showSuggestionMessage(listEl, "No address suggestions found.");
+      if (!cached || !cached.length) {
+        showSuggestionMessage(listEl, "No address suggestions found.");
+      }
       return;
     }
+    cachePredictions(query, predictions);
     const ranked = [...predictions]
-      .map((prediction) => ({ prediction, score: scoreAddressPrediction(prediction, value) }))
+      .map((prediction) => ({ prediction, score: scoreAddressPrediction(prediction, query) }))
       .sort((a, b) => b.score - a.score)
       .map((entry) => entry.prediction);
     renderSuggestionList(listEl, ranked, primaryInput, mirrorInput);
@@ -243,7 +274,7 @@ function bindAddressSuggestionInput(primaryInput, mirrorInput, listEl) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       requestAddressPredictions(primaryInput.value, listEl, primaryInput, mirrorInput);
-    }, 150);
+    }, 70);
   });
 
   primaryInput.addEventListener("change", () => {
@@ -259,7 +290,7 @@ function bindAddressSuggestionInput(primaryInput, mirrorInput, listEl) {
 
   primaryInput.addEventListener("focus", () => {
     enforceAddressInputsEditable();
-    if (primaryInput.value.trim().length >= 1) {
+    if (primaryInput.value.trim().length >= 2) {
       requestAddressPredictions(primaryInput.value, listEl, primaryInput, mirrorInput);
     }
   });
