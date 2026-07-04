@@ -61,6 +61,16 @@ constant in `script.js`.
      account to a selected `projectId`
    - Open **Client Snapshot** from the pipeline card to manage project details,
      floor plan, auctions, and notes with autosave.
+7. Configure automated floor-plan import:
+   - Set `FLOOR_PLAN_LOOKUP_ENDPOINT` in `firebase-config.js` to your HTTPS
+     backend endpoint (Cloud Function or API).
+   - Endpoint should accept `{ projectId, address }`, query approved providers,
+     upload selected floor-plan image to Firebase Storage, and return:
+     - `floorPlanUrl`
+     - `dimensions: { widthFt, lengthFt, sqft }`
+     - `source` and `sourceUrl`
+   - In **Client Snapshot**, use **Find & Import Floor Plan** to auto-populate
+     floor plan image + dimensions from the address.
 
 Firebase CLI deploy (from this folder):
 
@@ -72,6 +82,10 @@ firebase deploy --only firestore:rules,firestore:indexes,storage
 
 Current team-access restriction: only `trenton@sweethometransitions.com`
 can access `team.html`.
+
+Important: third-party listing sources (including Zillow/Realtor/Homes/county
+systems) must be integrated through licensed/authorized APIs or data feeds
+that allow this use.
 
 Data is organized under `projects/{projectId}` with subcollections:
 - `floorPlanItems` (for draggable item placements)
