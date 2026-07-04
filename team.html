@@ -14,29 +14,25 @@
   <header class="portal-header">
     <h1>Business Team Dashboard</h1>
     <div class="header-actions">
-      <label for="projectSelect" class="muted">Project</label>
-      <select id="projectSelect"></select>
       <button id="logoutBtn" class="btn-ghost">Log Out</button>
     </div>
   </header>
 
   <main class="portal-main">
     <section class="panel">
-      <h2>Project Snapshot</h2>
-      <div class="split-two">
-        <form id="hoursForm" class="stack-form">
-          <label for="hoursInput">Hours at Home</label>
-          <input id="hoursInput" type="number" min="0" step="0.5">
-          <button type="submit">Save Hours</button>
-        </form>
-
-        <form id="contractorForm" class="stack-form">
-          <label for="contractorInput">Add Contractor</label>
-          <input id="contractorInput" type="text" placeholder="Company or contact name">
-          <button type="submit">Add Contractor</button>
-        </form>
-      </div>
-      <ul id="teamContractorsList" class="list"></ul>
+      <h2>Transition Pipeline</h2>
+      <p class="muted">Track potential clients and active move transitions at a glance.</p>
+      <form id="pipelineLeadForm" class="split-lead">
+        <input id="leadName" type="text" placeholder="Client name" required>
+        <input id="leadEmail" type="email" placeholder="Client email">
+        <input id="leadPhone" type="text" placeholder="Phone number">
+        <select id="leadStage">
+          <option value="potential">Potential Client</option>
+          <option value="active">Active Transition</option>
+          <option value="completed">Completed</option>
+        </select>
+        <button type="submit">Add to Pipeline</button>
+      </form>
     </section>
 
     <section class="panel">
@@ -45,58 +41,24 @@
       <form id="clientAccessForm" class="split-client">
         <input id="clientEmailInput" type="email" placeholder="Client email address" required>
         <input id="clientPasscodeInput" type="password" minlength="6" placeholder="Temporary passcode (min 6)" required>
+        <select id="clientProjectSelect"></select>
         <button type="submit">Create Client Account</button>
       </form>
       <p class="muted">After account creation, the client can use “Forgot password?” on the login page to set a new password by email.</p>
     </section>
 
-    <section class="panel">
-      <h2>Interactive Floor Plan</h2>
-      <p class="muted">Upload a floor plan image, then add or drag item markers.</p>
-      <div class="split-two">
-        <form id="floorUploadForm" class="stack-form">
-          <label for="floorImage">Floor Plan Image</label>
-          <input id="floorImage" type="file" accept="image/*">
-          <button type="submit">Upload</button>
-        </form>
-        <form id="itemForm" class="stack-form">
-          <label for="itemLabel">Item Label</label>
-          <input id="itemLabel" type="text" placeholder="Sofa, Lamp, Dining Table">
-          <label for="itemRoom">Room</label>
-          <input id="itemRoom" type="text" placeholder="Living Room">
-          <label for="itemNotes">Notes</label>
-          <input id="itemNotes" type="text" placeholder="Against north wall">
-          <button type="submit">Add Item (click map to place)</button>
-        </form>
+    <section class="pipeline-columns">
+      <div class="pipeline-col panel">
+        <h3>Potential Clients</h3>
+        <div id="potentialList" class="pipeline-list"></div>
       </div>
-      <div id="teamFloorCanvas" class="floor-canvas"></div>
-      <p id="itemHint" class="muted">Tip: click anywhere on the map before adding an item to set its position.</p>
-    </section>
-
-    <section class="panel">
-      <h2>Auction Management</h2>
-      <form id="auctionForm" class="split-three">
-        <input id="auctionTitle" type="text" placeholder="Item name" required>
-        <select id="auctionStatus">
-          <option value="to_be_sold">To Be Sold</option>
-          <option value="sold">Sold</option>
-          <option value="unsold">Unsold</option>
-        </select>
-        <input id="auctionAmount" type="number" min="0" step="0.01" placeholder="Sale amount">
-        <button type="submit">Add Auction Item</button>
-      </form>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Status</th>
-              <th>Amount</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="teamAuctionBody"></tbody>
-        </table>
+      <div class="pipeline-col panel">
+        <h3>Active Transitions</h3>
+        <div id="activeList" class="pipeline-list"></div>
+      </div>
+      <div class="pipeline-col panel">
+        <h3>Completed</h3>
+        <div id="completedList" class="pipeline-list"></div>
       </div>
     </section>
 
