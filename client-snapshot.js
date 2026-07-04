@@ -55,6 +55,7 @@ let pendingPosition = { x: 50, y: 50 };
 let saveTimer = null;
 let suppressAutosave = false;
 let mapsPlacesLoader = null;
+let addressInputObserver = null;
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -76,6 +77,31 @@ function forceAddressInputsEditable() {
     input.readOnly = false;
     input.removeAttribute("disabled");
     input.removeAttribute("readonly");
+  });
+}
+
+function installAddressInputGuards() {
+  if (addressInputObserver) return;
+  forceAddressInputsEditable();
+
+  addressInputObserver = new MutationObserver(() => {
+    forceAddressInputsEditable();
+  });
+
+  [clientAddressInput, floorLookupAddress].forEach((input) => {
+    if (!input) return;
+    addressInputObserver.observe(input, {
+      attributes: true,
+      attributeFilter: ["readonly", "disabled", "class", "style"]
+    });
+
+    ["focus", "click", "pointerdown", "mousedown", "touchstart"].forEach((eventName) => {
+      input.addEventListener(eventName, () => {
+        forceAddressInputsEditable();
+        window.setTimeout(forceAddressInputsEditable, 0);
+        window.setTimeout(forceAddressInputsEditable, 50);
+      });
+    });
   });
 }
 
@@ -136,6 +162,7 @@ function bindAddressAutocomplete(primaryInput, mirrorInput) {
 async function initAddressAutocomplete() {
   try {
     forceAddressInputsEditable();
+    installAddressInputGuards();
     const loaded = await loadGoogleMapsPlaces();
     if (!loaded) return;
     bindAddressAutocomplete(clientAddressInput, floorLookupAddress);
@@ -455,6 +482,7 @@ observeAuth(async (user) => {
     window.location.href = "./team.html";
     return;
   }
+  installAddressInputGuards();
   forceAddressInputsEditable();
   initAddressAutocomplete();
 
