@@ -447,6 +447,68 @@ a.btn-ghost {
   white-space: nowrap;
 }
 
+.zoom-controls {
+  display: inline-flex;
+  gap: 8px;
+  align-items: end;
+}
+
+.icon-key-panel {
+  margin-bottom: 10px;
+}
+
+.icon-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.icon-palette-item {
+  background: #f6faf4;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 8px;
+  text-align: left;
+}
+
+.icon-palette-item:hover {
+  background: #eef6ea;
+}
+
+.marker-edit-btn {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.6rem;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.marker-editor {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 38, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+  width: 110px;
+  z-index: 30;
+}
+
+.marker-editor.visible {
+  display: grid;
+}
+
+.marker-editor input {
+  font-size: 0.66rem;
+  padding: 4px;
+}
+
 .rooms-list {
   display: grid;
   gap: 8px;
