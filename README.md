@@ -94,6 +94,10 @@ The same inquiry submission also posts to the Firebase HTTPS function
      - Side dimensions can be entered for the shape and are shown on-map
      - Multiple room boxes are supported and autosave as each box is drawn
      - Room length/width fields are editable and auto-recalculate overall floor dimensions
+     - Zoom controls support room-level detail inspection
+     - Multi-level homes are supported with a separate level map context
+     - Drag-and-drop icon key allows item placement directly onto the map
+     - Room dimensions can be edited from map overlays (double-click room) and from room list
      - Furniture/appliance icons (TV, couch, dresser, bed, table, chair, lamp) support per-item dimensions
      - Item icon size auto-scales proportionally to drawn floor shape dimensions
    - In **Client Snapshot**, use **Find & Import Floor Plan** to auto-populate
