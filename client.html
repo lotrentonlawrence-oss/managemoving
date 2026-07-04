@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Portal | Sweet Home Transitions</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+  <header class="portal-header">
+    <h1>Client Move Dashboard</h1>
+    <div class="header-actions">
+      <span id="clientName" class="muted"></span>
+      <button id="logoutBtn" class="btn-ghost">Log Out</button>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <section class="panel">
+      <h2>Floor Plan</h2>
+      <p class="muted">Updated by your transition team in real time.</p>
+      <div class="floor-controls">
+        <button id="zoomOutBtn" class="btn-ghost">-</button>
+        <span id="zoomLabel">100%</span>
+        <button id="zoomInBtn" class="btn-ghost">+</button>
+      </div>
+      <div id="floorPlanCanvas" class="floor-canvas client-canvas"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Contractors Selected</h2>
+      <ul id="contractorsList" class="list"></ul>
+    </section>
+
+    <section class="panel">
+      <h2>Hours at Home</h2>
+      <div class="stat-card">
+        <p id="hoursValue" class="stat-value">0</p>
+        <p class="muted">Total team hours logged on site</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Auction Progress</h2>
+      <div class="auction-summary">
+        <div class="stat-card">
+          <p id="soldAmount" class="stat-value">$0</p>
+          <p class="muted">Sold to date</p>
+        </div>
+        <div class="stat-card">
+          <p id="soldCount" class="stat-value">0</p>
+          <p class="muted">Items sold</p>
+        </div>
+        <div class="stat-card">
+          <p id="unsoldCount" class="stat-value">0</p>
+          <p class="muted">Items unsold</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Status</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody id="auctionBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="client.js"></script>
+</body>
+</html>
