@@ -110,7 +110,10 @@ input.address-input:disabled {
 
 .address-suggestions {
   display: none;
-  margin-top: 4px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
@@ -126,21 +129,23 @@ input.address-input:disabled {
 }
 
 .address-suggestion-item {
+  display: block;
   width: 100%;
   text-align: left;
-  border: none;
   background: #fff;
   color: var(--ink);
   cursor: pointer;
   padding: 8px 10px;
-  border-radius: 0;
   font-weight: 500;
 }
 
-.address-suggestion-item:hover,
-.address-suggestion-item:focus-visible {
+.address-suggestion-item:hover {
   background: #eef3eb;
   color: var(--ink);
+}
+
+.address-typeahead {
+  position: relative;
 }
 
 button {
