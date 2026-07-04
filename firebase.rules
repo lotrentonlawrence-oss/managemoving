@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isTeam() {
+      return isAuthenticated() && (
+        request.auth.token.team == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "team"
+      );
+    }
+
+    function isProjectClient(projectId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/projectMembers/$(request.auth.uid)).data.projectId == projectId;
+    }
+
+    match /users/{uid} {
+      allow read: if isTeam() || (isAuthenticated() && request.auth.uid == uid);
+      allow write: if isTeam();
+    }
+
+    match /projectMembers/{uid} {
+      allow read: if isTeam() || (isAuthenticated() && request.auth.uid == uid);
+      allow write: if isTeam();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isTeam() || isProjectClient(projectId);
+      allow write: if isTeam();
+
+      match /floorPlanItems/{itemId} {
+        allow read: if isTeam() || isProjectClient(projectId);
+        allow write: if isTeam();
+      }
+
+      match /auctionItems/{itemId} {
+        allow read: if isTeam() || isProjectClient(projectId);
+        allow write: if isTeam();
+      }
+    }
+  }
+}
