@@ -21,7 +21,7 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
 // Contact form -> Google Apps Script mailer (hello@sweethometransitions.com -> trenton@sweethometransitions.com)
 // Replace the URL below with your deployed Apps Script Web App URL.
 // See apps-script/Code.gs and EMAIL_SETUP.md for full deployment steps.
-const SCRIPT_URL = 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_XVeE560PSdWoV_dQKp8Afj8G4snGG_rCI4UoWXk9jbMDbwlloqOD7FqJFaWLKMWL7g/exec';
 
 const form = document.getElementById('contactForm');
 const formNote = document.getElementById('formNote');
