@@ -19,6 +19,8 @@ Valley, AL.
 - `firebase-config.js` — Firebase web app config placeholders
 - `firebase.rules` — Firestore security rules for team/client access
 - `storage.rules` — Storage security rules for floor plan uploads
+- `firebase.json` / `.firebaserc` — Firebase project/deploy configuration
+- `firestore.indexes.json` — Firestore index config
 - `assets/logo.png` — primary brand logo used in header and footer
 - `apps-script/Code.gs` — Google Apps Script that emails contact-form
   submissions from `hello@sweethometransitions.com` to
@@ -55,6 +57,14 @@ constant in `script.js`.
 6. Sign in to `team.html` as `trenton@sweethometransitions.com` and use
    **Client Account Setup** to create client credentials and auto-link each
    account to the selected `projectId`.
+
+Firebase CLI deploy (from this folder):
+
+```bash
+firebase login
+firebase use sweet-home-transitions
+firebase deploy --only firestore:rules,firestore:indexes,storage
+```
 
 Current team-access restriction: only `trenton@sweethometransitions.com`
 can access `team.html`.
