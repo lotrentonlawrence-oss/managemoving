@@ -180,7 +180,7 @@ img{max-width:100%;display:block;}
 .tl-body p{margin:0;font-size:.92rem;}
 
 /* Pricing */
-.pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:20px;}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:24px;margin-top:20px;}
 .price-card{
   background:var(--white);border-radius:var(--radius);padding:30px 22px;text-align:center;
   box-shadow:var(--shadow);position:relative;
