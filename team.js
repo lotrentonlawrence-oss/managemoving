@@ -1,4 +1,4 @@
-import { observeAuth, logout, resolvePortalContext, db, storage, formatCurrency } from "./portal.js";
+import { observeAuth, logout, resolvePortalContext, db } from "./portal.js";
 import { FIREBASE_CONFIG } from "./firebase-config.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
@@ -11,48 +11,28 @@ import {
   query,
   onSnapshot,
   doc,
-  getDoc,
   setDoc,
   addDoc,
-  updateDoc,
-  deleteDoc,
   serverTimestamp,
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
-const projectSelect = document.getElementById("projectSelect");
 const logoutBtn = document.getElementById("logoutBtn");
+const pipelineLeadForm = document.getElementById("pipelineLeadForm");
+const leadName = document.getElementById("leadName");
+const leadEmail = document.getElementById("leadEmail");
+const leadPhone = document.getElementById("leadPhone");
+const leadStage = document.getElementById("leadStage");
 const clientAccessForm = document.getElementById("clientAccessForm");
 const clientEmailInput = document.getElementById("clientEmailInput");
 const clientPasscodeInput = document.getElementById("clientPasscodeInput");
-const hoursForm = document.getElementById("hoursForm");
-const hoursInput = document.getElementById("hoursInput");
-const contractorForm = document.getElementById("contractorForm");
-const contractorInput = document.getElementById("contractorInput");
-const teamContractorsList = document.getElementById("teamContractorsList");
-const floorUploadForm = document.getElementById("floorUploadForm");
-const floorImage = document.getElementById("floorImage");
-const teamFloorCanvas = document.getElementById("teamFloorCanvas");
-const itemForm = document.getElementById("itemForm");
-const itemHint = document.getElementById("itemHint");
-const auctionForm = document.getElementById("auctionForm");
-const auctionTitle = document.getElementById("auctionTitle");
-const auctionStatus = document.getElementById("auctionStatus");
-const auctionAmount = document.getElementById("auctionAmount");
-const teamAuctionBody = document.getElementById("teamAuctionBody");
+const clientProjectSelect = document.getElementById("clientProjectSelect");
+const potentialList = document.getElementById("potentialList");
+const activeList = document.getElementById("activeList");
+const completedList = document.getElementById("completedList");
 const teamNote = document.getElementById("teamNote");
 
-let currentProjectId = null;
-let currentProject = {};
-let pendingPosition = { x: 50, y: 50 };
-let floorUnsub = null;
-let auctionUnsub = null;
-let projectUnsub = null;
+let projectsCache = [];
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -63,162 +43,135 @@ function note(text) {
   teamNote.textContent = text;
 }
 
-function ensureProjectSelected() {
-  if (!currentProjectId) {
-    note("Select a project first.");
-    return false;
-  }
-
-  async function createClientAuthAccount(email, passcode) {
-    const appName = `client-provision-${Date.now()}`;
-    const secondaryApp = initializeApp(FIREBASE_CONFIG, appName);
-    const secondaryAuth = getAuth(secondaryApp);
-    try {
-      const result = await createUserWithEmailAndPassword(secondaryAuth, email, passcode);
-      return result.user;
-    } finally {
-      await signOutAuth(secondaryAuth).catch(() => {});
-      await deleteApp(secondaryApp).catch(() => {});
-    }
-  }
-  return true;
+function stageLabel(stage) {
+  if (stage === "completed") return "Completed";
+  if (stage === "active") return "Active Transition";
+  return "Potential Client";
 }
 
-function renderContractors(contractors = []) {
-  teamContractorsList.innerHTML = "";
-  if (!contractors.length) {
-    teamContractorsList.innerHTML = "<li>No contractors selected yet.</li>";
+function progressValue(project) {
+  if (project.pipelineProgress !== undefined && project.pipelineProgress !== null) {
+    return Number(project.pipelineProgress || 0);
+  }
+  if (project.pipelineStage === "completed") return 100;
+  if (project.pipelineStage === "active") return 50;
+  return 10;
+}
+
+function renderProjectCard(projectId, data) {
+  const card = document.createElement("article");
+  card.className = "pipeline-card";
+
+  const name = data.clientName || data.title || "Unnamed client";
+  const email = data.clientEmail || "";
+  const progress = progressValue(data);
+  const stage = stageLabel(data.pipelineStage || "potential");
+
+  card.innerHTML = `
+    <h4>${name}</h4>
+    <p class="muted">${email || "No email yet"}</p>
+    <p class="muted">Stage: ${stage}</p>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" style="width:${Math.max(0, Math.min(100, progress))}%"></div></div>
+      <span>${Math.round(progress)}%</span>
+    </div>
+    <button class="btn-ghost" data-project-id="${projectId}">Open Client Snapshot</button>
+  `;
+
+  card.querySelector("button").addEventListener("click", () => {
+    window.location.href = `./client-snapshot.html?projectId=${encodeURIComponent(projectId)}`;
+  });
+
+  return card;
+}
+
+function renderPipeline(projectDocs) {
+  potentialList.innerHTML = "";
+  activeList.innerHTML = "";
+  completedList.innerHTML = "";
+  clientProjectSelect.innerHTML = "";
+
+  if (!projectDocs.length) {
+    potentialList.innerHTML = "<p class='muted'>No clients in pipeline yet.</p>";
+    clientProjectSelect.innerHTML = "<option value=''>No project available</option>";
     return;
   }
 
-  contractors.forEach((name, idx) => {
-    const li = document.createElement("li");
-    const removeBtn = document.createElement("button");
-    removeBtn.className = "btn-ghost";
-    removeBtn.style.marginLeft = "8px";
-    removeBtn.textContent = "Remove";
-    removeBtn.addEventListener("click", async () => {
-      const next = [...contractors];
-      next.splice(idx, 1);
-      await updateDoc(doc(db, "projects", currentProjectId), { contractors: next, updatedAt: serverTimestamp() });
-      note("Contractor removed.");
+  projectDocs.forEach(({ id, data }) => {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = data.clientName || data.title || id;
+    clientProjectSelect.appendChild(option);
+
+    const card = renderProjectCard(id, data);
+    const stage = data.pipelineStage || "potential";
+    if (stage === "active") {
+      activeList.appendChild(card);
+    } else if (stage === "completed") {
+      completedList.appendChild(card);
+    } else {
+      potentialList.appendChild(card);
+    }
+  });
+}
+
+async function createClientAuthAccount(email, passcode) {
+  const appName = `client-provision-${Date.now()}`;
+  const secondaryApp = initializeApp(FIREBASE_CONFIG, appName);
+  const secondaryAuth = getAuth(secondaryApp);
+  try {
+    const result = await createUserWithEmailAndPassword(secondaryAuth, email, passcode);
+    return result.user;
+  } finally {
+    await signOutAuth(secondaryAuth).catch(() => {});
+    await deleteApp(secondaryApp).catch(() => {});
+  }
+}
+
+pipelineLeadForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const clientName = leadName.value.trim();
+  const clientEmail = leadEmail.value.trim().toLowerCase();
+  const clientPhone = leadPhone.value.trim();
+  const pipelineStage = leadStage.value;
+
+  if (!clientName) {
+    note("Client name is required.");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "projects"), {
+      title: clientName,
+      clientName,
+      clientEmail,
+      clientPhone,
+      pipelineStage,
+      pipelineProgress: pipelineStage === "completed" ? 100 : (pipelineStage === "active" ? 50 : 10),
+      contractors: [],
+      hoursAtHome: 0,
+      floorPlanUrl: "",
+      teamNotes: "",
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp()
     });
-    li.textContent = name;
-    li.appendChild(removeBtn);
-    teamContractorsList.appendChild(li);
-  });
-}
-
-function markerEl(itemId, item) {
-  const el = document.createElement("div");
-  el.className = "floor-marker";
-  el.dataset.id = itemId;
-  el.style.left = `${item.x || 50}%`;
-  el.style.top = `${item.y || 50}%`;
-  el.innerHTML = `${item.label || "Item"}<small>${item.room || ""}</small>`;
-  return el;
-}
-
-function enableMarkerDrag(el) {
-  let dragging = false;
-
-  el.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    dragging = true;
-    el.setPointerCapture(event.pointerId);
-  });
-
-  el.addEventListener("pointermove", async (event) => {
-    if (!dragging) return;
-    const rect = teamFloorCanvas.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-    el.style.left = `${x}%`;
-    el.style.top = `${y}%`;
-  });
-
-  el.addEventListener("pointerup", async (event) => {
-    if (!dragging) return;
-    dragging = false;
-    const rect = teamFloorCanvas.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-    await updateDoc(doc(db, "projects", currentProjectId, "floorPlanItems", el.dataset.id), { x, y, updatedAt: serverTimestamp() });
-    note("Floor plan position updated.");
-  });
-}
-
-function renderFloor(project, items = []) {
-  teamFloorCanvas.innerHTML = "";
-  teamFloorCanvas.style.backgroundImage = project.floorPlanUrl ? `url('${project.floorPlanUrl}')` : "none";
-  items.forEach(({ id, data }) => {
-    const el = markerEl(id, data);
-    enableMarkerDrag(el);
-    teamFloorCanvas.appendChild(el);
-  });
-}
-
-function renderAuction(items = []) {
-  teamAuctionBody.innerHTML = "";
-  items.forEach(({ id, data }) => {
-    const tr = document.createElement("tr");
-    const title = data.title || "";
-    const status = data.status || "to_be_sold";
-    const amount = Number(data.amount || 0);
-    tr.innerHTML = `
-      <td>${title}</td>
-      <td>
-        <select data-role="status" data-id="${id}">
-          <option value="to_be_sold" ${status === "to_be_sold" ? "selected" : ""}>To Be Sold</option>
-          <option value="sold" ${status === "sold" ? "selected" : ""}>Sold</option>
-          <option value="unsold" ${status === "unsold" ? "selected" : ""}>Unsold</option>
-        </select>
-      </td>
-      <td><input data-role="amount" data-id="${id}" type="number" min="0" step="0.01" value="${amount}"></td>
-      <td><button class="btn-ghost" data-role="delete" data-id="${id}">Delete</button></td>
-    `;
-    teamAuctionBody.appendChild(tr);
-  });
-}
-
-teamFloorCanvas.addEventListener("click", (event) => {
-  const rect = teamFloorCanvas.getBoundingClientRect();
-  pendingPosition = {
-    x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
-    y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100))
-  };
-  itemHint.textContent = `Placement selected: ${pendingPosition.x.toFixed(1)}%, ${pendingPosition.y.toFixed(1)}%`;
-});
-
-hoursForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!ensureProjectSelected()) return;
-  await updateDoc(doc(db, "projects", currentProjectId), {
-    hoursAtHome: Number(hoursInput.value || 0),
-    updatedAt: serverTimestamp()
-  });
-  note("Hours updated.");
-});
-
-contractorForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!ensureProjectSelected()) return;
-  const name = contractorInput.value.trim();
-  if (!name) return;
-  const next = [...(currentProject.contractors || []), name];
-  await updateDoc(doc(db, "projects", currentProjectId), { contractors: next, updatedAt: serverTimestamp() });
-  contractorInput.value = "";
-  note("Contractor added.");
+    pipelineLeadForm.reset();
+    leadStage.value = "potential";
+    note("Client added to pipeline.");
+  } catch (err) {
+    note(err.message || "Unable to add client to pipeline.");
+  }
 });
 
 clientAccessForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!ensureProjectSelected()) return;
-
   const email = clientEmailInput.value.trim().toLowerCase();
   const passcode = clientPasscodeInput.value;
-  if (!email || !passcode) {
-    note("Enter client email and passcode.");
+  const projectId = clientProjectSelect.value;
+
+  if (!email || !passcode || !projectId) {
+    note("Provide client email, passcode, and project.");
     return;
   }
   if (passcode.length < 6) {
@@ -226,158 +179,37 @@ clientAccessForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  note("Creating client account...");
   try {
     const user = await createClientAuthAccount(email, passcode);
     await setDoc(doc(db, "users", user.uid), {
       email,
       role: "client",
-      projectId: currentProjectId,
+      projectId,
       updatedAt: serverTimestamp()
     }, { merge: true });
     await setDoc(doc(db, "projectMembers", user.uid), {
       email,
       role: "client",
-      projectId: currentProjectId,
+      projectId,
       createdBy: "trenton@sweethometransitions.com",
       createdAt: serverTimestamp()
     }, { merge: true });
-
     clientAccessForm.reset();
-    note(`Client account created and linked to project: ${currentProjectId}`);
+    note("Client account created and linked. They can use \"Forgot password?\" to request a new passcode email.");
   } catch (err) {
     if (err && err.code === "auth/email-already-in-use") {
-      note("That email already has an account. Use Forgot password on login to set a new password.");
+      note("That email already has an account. Use \"Forgot password?\" on login to request a new passcode email.");
       return;
     }
     note(err.message || "Unable to create client account.");
   }
 });
 
-floorUploadForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!ensureProjectSelected()) return;
-  const file = floorImage.files[0];
-  if (!file) {
-    note("Choose an image file first.");
-    return;
-  }
-
-  const fileRef = ref(storage, `floorplans/${currentProjectId}/${Date.now()}-${file.name}`);
-  await uploadBytes(fileRef, file);
-  const floorPlanUrl = await getDownloadURL(fileRef);
-  await updateDoc(doc(db, "projects", currentProjectId), { floorPlanUrl, updatedAt: serverTimestamp() });
-  floorImage.value = "";
-  note("Floor plan uploaded.");
-});
-
-itemForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!ensureProjectSelected()) return;
-  const label = document.getElementById("itemLabel").value.trim();
-  const room = document.getElementById("itemRoom").value.trim();
-  const notes = document.getElementById("itemNotes").value.trim();
-  if (!label) {
-    note("Item label is required.");
-    return;
-  }
-  await addDoc(collection(db, "projects", currentProjectId, "floorPlanItems"), {
-    label,
-    room,
-    notes,
-    x: pendingPosition.x,
-    y: pendingPosition.y,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-  itemForm.reset();
-  note("Floor plan item added.");
-});
-
-auctionForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!ensureProjectSelected()) return;
-  const title = auctionTitle.value.trim();
-  if (!title) return;
-  await addDoc(collection(db, "projects", currentProjectId, "auctionItems"), {
-    title,
-    status: auctionStatus.value,
-    amount: Number(auctionAmount.value || 0),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-  auctionForm.reset();
-  auctionStatus.value = "to_be_sold";
-  note("Auction item added.");
-});
-
-teamAuctionBody.addEventListener("change", async (event) => {
-  if (!ensureProjectSelected()) return;
-  const target = event.target;
-  const id = target.dataset.id;
-  if (!id) return;
-
-  if (target.dataset.role === "status") {
-    await updateDoc(doc(db, "projects", currentProjectId, "auctionItems", id), { status: target.value, updatedAt: serverTimestamp() });
-    return;
-  }
-  if (target.dataset.role === "amount") {
-    await updateDoc(doc(db, "projects", currentProjectId, "auctionItems", id), { amount: Number(target.value || 0), updatedAt: serverTimestamp() });
-  }
-});
-
-teamAuctionBody.addEventListener("click", async (event) => {
-  if (!ensureProjectSelected()) return;
-  const target = event.target;
-  if (target.dataset.role !== "delete") return;
-  const id = target.dataset.id;
-  await deleteDoc(doc(db, "projects", currentProjectId, "auctionItems", id));
-  note("Auction item removed.");
-});
-
-function subscribeProject(projectId) {
-  if (projectUnsub) projectUnsub();
-  if (floorUnsub) floorUnsub();
-  if (auctionUnsub) auctionUnsub();
-
-  currentProjectId = projectId;
-  const projectRef = doc(db, "projects", projectId);
-  const floorQuery = query(collection(db, "projects", projectId, "floorPlanItems"));
-  const auctionQuery = query(collection(db, "projects", projectId, "auctionItems"), orderBy("createdAt", "desc"));
-
-  projectUnsub = onSnapshot(projectRef, async (snap) => {
-    if (!snap.exists()) {
-      await setDoc(projectRef, {
-        title: projectId,
-        contractors: [],
-        hoursAtHome: 0,
-        floorPlanUrl: "",
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      return;
-    }
-    currentProject = snap.data();
-    hoursInput.value = currentProject.hoursAtHome || 0;
-    renderContractors(currentProject.contractors || []);
-  });
-
-  floorUnsub = onSnapshot(floorQuery, (snap) => {
-    const items = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    renderFloor(currentProject, items);
-  });
-
-  auctionUnsub = onSnapshot(auctionQuery, (snap) => {
-    const items = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    renderAuction(items);
-  });
-}
-
 observeAuth(async (user) => {
   if (!user) {
     window.location.href = "./login.html";
     return;
   }
-
   const ctx = await resolvePortalContext(user);
   if (ctx.role !== "team") {
     window.location.href = ctx.role === "client" ? "./client.html" : "./login.html";
@@ -385,52 +217,8 @@ observeAuth(async (user) => {
   }
 
   const projectsQuery = query(collection(db, "projects"), orderBy("updatedAt", "desc"));
-  onSnapshot(projectsQuery, async (snap) => {
-    const projects = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    projectSelect.innerHTML = "";
-
-    if (!projects.length) {
-      const defaultId = "demo-project";
-      await setDoc(doc(db, "projects", defaultId), {
-        title: "Demo Project",
-        contractors: [],
-        hoursAtHome: 0,
-        floorPlanUrl: "",
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      projectSelect.innerHTML = `<option value="${defaultId}">Demo Project</option>`;
-      subscribeProject(defaultId);
-      return;
-    }
-
-    projects.forEach((p) => {
-      const option = document.createElement("option");
-      option.value = p.id;
-      option.textContent = p.data.title || p.id;
-      projectSelect.appendChild(option);
-    });
-
-    const selectedId = currentProjectId && projects.some((p) => p.id === currentProjectId)
-      ? currentProjectId
-      : projects[0].id;
-    projectSelect.value = selectedId;
-    subscribeProject(selectedId);
+  onSnapshot(projectsQuery, (snap) => {
+    projectsCache = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    renderPipeline(projectsCache);
   });
-});
-
-projectSelect.addEventListener("change", async () => {
-  const selected = projectSelect.value;
-  if (!selected) return;
-  const projectSnap = await getDoc(doc(db, "projects", selected));
-  if (!projectSnap.exists()) {
-    await setDoc(doc(db, "projects", selected), {
-      title: selected,
-      contractors: [],
-      hoursAtHome: 0,
-      floorPlanUrl: "",
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-  }
-  subscribeProject(selected);
-  note(`Viewing project: ${selected}`);
 });
