@@ -60,6 +60,7 @@ let mapsPlacesLoader = null;
 let placesPredictionService = null;
 let addressGuardObserver = null;
 let addressGuardTimer = null;
+const HUNTSVILLE_BIAS = { lat: 34.7304, lng: -86.5861 };
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -148,6 +149,17 @@ function hideSuggestionList(listEl) {
   listEl.classList.remove("visible");
 }
 
+function scoreAddressPrediction(prediction, inputValue) {
+  const desc = String(prediction.description || "").toLowerCase();
+  const q = String(inputValue || "").trim().toLowerCase();
+  let score = 0;
+  if (q && desc.startsWith(q)) score += 10;
+  if (q && desc.includes(q)) score += 5;
+  if (desc.includes("huntsville")) score += 4;
+  if (desc.includes(" al")) score += 2;
+  return score;
+}
+
 function renderSuggestionList(listEl, predictions, primaryInput, mirrorInput) {
   if (!listEl) return;
   listEl.innerHTML = "";
@@ -156,7 +168,7 @@ function renderSuggestionList(listEl, predictions, primaryInput, mirrorInput) {
     return;
   }
 
-  predictions.slice(0, 8).forEach((prediction) => {
+  predictions.slice(0, 5).forEach((prediction) => {
     const item = document.createElement("button");
     item.type = "button";
     item.className = "address-suggestion-item";
@@ -184,14 +196,21 @@ function requestAddressPredictions(value, listEl, primaryInput, mirrorInput) {
   placesPredictionService.getPlacePredictions({
     input: value.trim(),
     types: ["address"],
-    componentRestrictions: { country: "us" }
+    componentRestrictions: { country: "us" },
+    region: "us",
+    location: HUNTSVILLE_BIAS,
+    radius: 120000
   }, (predictions, status) => {
     const okStatus = window.google.maps.places.PlacesServiceStatus.OK;
     if (status !== okStatus || !predictions) {
       hideSuggestionList(listEl);
       return;
     }
-    renderSuggestionList(listEl, predictions, primaryInput, mirrorInput);
+    const ranked = [...predictions]
+      .map((prediction) => ({ prediction, score: scoreAddressPrediction(prediction, value) }))
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.prediction);
+    renderSuggestionList(listEl, ranked, primaryInput, mirrorInput);
   });
 }
 
