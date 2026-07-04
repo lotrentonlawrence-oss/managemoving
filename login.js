@@ -11,6 +11,11 @@ const note = document.getElementById("loginNote");
 const createAccountBtn = document.getElementById("createAccountBtn");
 const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
 
+function askEmail(defaultValue = "") {
+  const value = window.prompt("Enter your email address:", defaultValue);
+  return (value || "").trim();
+}
+
 function routeByRole(role) {
   if (role === "team") {
     window.location.href = "./team.html";
@@ -46,16 +51,26 @@ form.addEventListener("submit", async (event) => {
 });
 
 createAccountBtn.addEventListener("click", async () => {
-  const email = form.email.value.trim();
-  const password = form.password.value;
-  if (!email || !password) {
-    note.textContent = "Enter email and password to create an account.";
+  const email = askEmail(form.email.value.trim());
+  if (!email) {
+    note.textContent = "Account creation cancelled.";
+    return;
+  }
+
+  const password = window.prompt("Choose a password (minimum 6 characters):", "");
+  if (!password) {
+    note.textContent = "Account creation cancelled.";
+    return;
+  }
+  if (password.length < 6) {
+    note.textContent = "Password must be at least 6 characters.";
     return;
   }
 
   note.textContent = "Creating account...";
   try {
     const result = await createAccount(email, password);
+    form.email.value = email;
     const ctx = await resolvePortalContext(result.user);
     routeByRole(ctx.role);
   } catch (err) {
@@ -64,16 +79,17 @@ createAccountBtn.addEventListener("click", async () => {
 });
 
 forgotPasswordBtn.addEventListener("click", async () => {
-  const email = form.email.value.trim();
+  const email = askEmail(form.email.value.trim());
   if (!email) {
-    note.textContent = "Enter your registered email first.";
+    note.textContent = "Password setup/reset cancelled.";
     return;
   }
 
-  note.textContent = "Checking account...";
+  note.textContent = "Sending password setup/reset email...";
   try {
     await resetPasswordForRegisteredAccount(email);
-    note.textContent = "Password reset email sent.";
+    form.email.value = email;
+    note.textContent = "Password setup/reset email sent.";
   } catch (err) {
     note.textContent = err.message || "Unable to send password reset.";
   }
