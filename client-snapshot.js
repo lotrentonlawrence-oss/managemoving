@@ -1,5 +1,5 @@
 import { observeAuth, logout, resolvePortalContext, db, storage, auth } from "./portal.js";
-import { FLOOR_PLAN_LOOKUP_ENDPOINT } from "./firebase-config.js";
+import { FLOOR_PLAN_LOOKUP_ENDPOINT, GOOGLE_MAPS_API_KEY } from "./firebase-config.js";
 import {
   doc,
   onSnapshot,
@@ -54,6 +54,7 @@ let currentProject = {};
 let pendingPosition = { x: 50, y: 50 };
 let saveTimer = null;
 let suppressAutosave = false;
+let mapsPlacesLoader = null;
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -66,6 +67,67 @@ function setSaveNote(text) {
 
 function setFloorSourceNote(text) {
   floorSourceNote.textContent = text || "";
+}
+
+function loadGoogleMapsPlaces() {
+  if (window.google && window.google.maps && window.google.maps.places) {
+    return Promise.resolve(true);
+  }
+  if (!GOOGLE_MAPS_API_KEY) {
+    return Promise.resolve(false);
+  }
+  if (mapsPlacesLoader) {
+    return mapsPlacesLoader;
+  }
+
+  mapsPlacesLoader = new Promise((resolve, reject) => {
+    const existing = document.getElementById("google-maps-places-script");
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Google Maps script failed to load.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-maps-places-script";
+    script.async = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&libraries=places`;
+    script.addEventListener("load", () => resolve(true), { once: true });
+    script.addEventListener("error", () => reject(new Error("Google Maps script failed to load.")), { once: true });
+    document.head.appendChild(script);
+  });
+  return mapsPlacesLoader;
+}
+
+function bindAddressAutocomplete(primaryInput, mirrorInput) {
+  if (!window.google || !window.google.maps || !window.google.maps.places) return;
+  if (primaryInput.dataset.mapsAutocompleteBound === "1") return;
+  primaryInput.dataset.mapsAutocompleteBound = "1";
+
+  const autocomplete = new window.google.maps.places.Autocomplete(primaryInput, {
+    types: ["address"],
+    componentRestrictions: { country: "us" },
+    fields: ["formatted_address", "address_components"]
+  });
+
+  autocomplete.addListener("place_changed", () => {
+    const place = autocomplete.getPlace();
+    const formatted = place && place.formatted_address ? place.formatted_address : primaryInput.value.trim();
+    primaryInput.value = formatted;
+    mirrorInput.value = formatted;
+    queueAutosave();
+  });
+}
+
+async function initAddressAutocomplete() {
+  try {
+    const loaded = await loadGoogleMapsPlaces();
+    if (!loaded) return;
+    bindAddressAutocomplete(clientAddressInput, floorLookupAddress);
+    bindAddressAutocomplete(floorLookupAddress, clientAddressInput);
+  } catch (err) {
+    setFloorSourceNote(err.message || "Address suggestions are currently unavailable.");
+  }
 }
 
 function toContractorArray(value) {
@@ -376,6 +438,7 @@ observeAuth(async (user) => {
     window.location.href = "./team.html";
     return;
   }
+  initAddressAutocomplete();
 
   const projectRef = doc(db, "projects", projectId);
   const floorQuery = query(collection(db, "projects", projectId, "floorPlanItems"));
