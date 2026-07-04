@@ -87,6 +87,8 @@ constant in `script.js`.
      - Team can click **Apply Latest Imported Floor Plan** anytime
      - Team can draw a 4-sided floor shape directly on the interactive map
      - Side dimensions can be entered for the shape and are shown on-map
+     - Multiple room boxes are supported and autosave as each box is drawn
+     - Room length/width fields are editable and auto-recalculate overall floor dimensions
      - Furniture/appliance icons (TV, couch, dresser, bed, table, chair, lamp) support per-item dimensions
      - Item icon size auto-scales proportionally to drawn floor shape dimensions
    - In **Client Snapshot**, use **Find & Import Floor Plan** to auto-populate
