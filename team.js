@@ -1,4 +1,4 @@
-import { observeAuth, logout, resolvePortalContext, db } from "./portal.js";
+import { observeAuth, logout, resolvePortalContext, db, auth } from "./portal.js";
 import { FIREBASE_CONFIG } from "./firebase-config.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
@@ -31,8 +31,11 @@ const potentialList = document.getElementById("potentialList");
 const activeList = document.getElementById("activeList");
 const completedList = document.getElementById("completedList");
 const teamNote = document.getElementById("teamNote");
+const pipelineSubmitBtn = pipelineLeadForm?.querySelector("button[type='submit']");
+const accountSubmitBtn = clientAccessForm?.querySelector("button[type='submit']");
 
 let projectsCache = [];
+let teamSessionReady = false;
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -41,6 +44,20 @@ logoutBtn.addEventListener("click", async () => {
 
 function note(text) {
   teamNote.textContent = text;
+}
+
+function setTeamActionsEnabled(enabled) {
+  if (pipelineSubmitBtn) pipelineSubmitBtn.disabled = !enabled;
+  if (accountSubmitBtn) accountSubmitBtn.disabled = !enabled;
+}
+
+async function requireTeamSession() {
+  const user = auth.currentUser;
+  if (!user || !teamSessionReady) {
+    throw new Error("Session still loading. Please wait one moment and try again.");
+  }
+  // Refresh token so Firestore receives current auth claims before privileged writes.
+  await user.getIdToken(true);
 }
 
 function stageLabel(stage) {
@@ -142,6 +159,7 @@ pipelineLeadForm.addEventListener("submit", async (event) => {
   }
 
   try {
+    await requireTeamSession();
     await addDoc(collection(db, "projects"), {
       title: clientName,
       clientName,
@@ -160,7 +178,7 @@ pipelineLeadForm.addEventListener("submit", async (event) => {
     leadStage.value = "potential";
     note("Client added to pipeline.");
   } catch (err) {
-    note(err.message || "Unable to add client to pipeline.");
+    note(`${err.code ? `${err.code}: ` : ""}${err.message || "Unable to add client to pipeline."}`);
   }
 });
 
@@ -180,6 +198,7 @@ clientAccessForm.addEventListener("submit", async (event) => {
   }
 
   try {
+    await requireTeamSession();
     const user = await createClientAuthAccount(email, passcode);
     await setDoc(doc(db, "users", user.uid), {
       email,
@@ -201,9 +220,11 @@ clientAccessForm.addEventListener("submit", async (event) => {
       note("That email already has an account. Use \"Forgot password?\" on login to request a new passcode email.");
       return;
     }
-    note(err.message || "Unable to create client account.");
+    note(`${err.code ? `${err.code}: ` : ""}${err.message || "Unable to create client account."}`);
   }
 });
+
+setTeamActionsEnabled(false);
 
 observeAuth(async (user) => {
   if (!user) {
@@ -215,10 +236,14 @@ observeAuth(async (user) => {
     window.location.href = ctx.role === "client" ? "./client.html" : "./login.html";
     return;
   }
+  teamSessionReady = true;
+  setTeamActionsEnabled(true);
 
   const projectsQuery = query(collection(db, "projects"), orderBy("updatedAt", "desc"));
   onSnapshot(projectsQuery, (snap) => {
     projectsCache = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
     renderPipeline(projectsCache);
+  }, (error) => {
+    note(`${error.code ? `${error.code}: ` : ""}${error.message || "Unable to read pipeline data."}`);
   });
 });
