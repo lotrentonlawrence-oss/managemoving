@@ -39,7 +39,8 @@ service cloud.firestore {
 
     match /projects/{projectId} {
       allow read: if isTeam() || isProjectClient(projectId);
-      allow write: if isTeam();
+      allow create: if isAuthenticated();
+      allow update, delete: if isTeam();
 
       match /floorPlanItems/{itemId} {
         allow read: if isTeam() || isProjectClient(projectId);
