@@ -38,6 +38,10 @@ export async function getMembership(uid) {
 
 export async function isTeamUser(user) {
   if (!user) return false;
+  const email = (user.email || "").toLowerCase();
+  const hasBusinessEmail = email.endsWith("@sweethometransitions.com");
+  if (!hasBusinessEmail) return false;
+
   const token = await getIdTokenResult(user, true);
   if (token.claims.team === true) return true;
 
