@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="portal.css?v=20260704c">
+  <link rel="stylesheet" href="portal.css?v=20260704d">
 </head>
 <body>
   <header class="portal-header">
@@ -36,10 +36,12 @@
           <label for="clientPhoneInput">Phone</label>
           <input id="clientPhoneInput" type="text">
         </div>
-        <div class="stack-form">
+        <div class="stack-form address-field">
           <label for="clientAddressInput">Address</label>
-          <input id="clientAddressInput" class="address-input" type="text" autocomplete="street-address">
-          <div id="clientAddressSuggestions" class="address-suggestions" role="listbox"></div>
+          <div class="address-typeahead">
+            <input id="clientAddressInput" class="address-input" type="text" autocomplete="street-address">
+            <div id="clientAddressSuggestions" class="address-suggestions" role="listbox"></div>
+          </div>
         </div>
         <div class="stack-form">
           <label for="pipelineStageInput">Stage</label>
@@ -73,10 +75,12 @@
       <h2>Interactive Floor Plan</h2>
       <p class="muted">Lookup by address, auto-import floor plan, then place draggable item markers.</p>
       <form id="floorLookupForm" class="split-two floor-lookup">
-        <div class="stack-form">
+        <div class="stack-form address-field">
           <label for="floorLookupAddress">Property Address</label>
-          <input id="floorLookupAddress" class="address-input" type="text" autocomplete="street-address" placeholder="123 Main St, Huntsville, AL 35801">
-          <div id="floorLookupAddressSuggestions" class="address-suggestions" role="listbox"></div>
+          <div class="address-typeahead">
+            <input id="floorLookupAddress" class="address-input" type="text" autocomplete="street-address" placeholder="123 Main St, Huntsville, AL 35801">
+            <div id="floorLookupAddressSuggestions" class="address-suggestions" role="listbox"></div>
+          </div>
         </div>
         <div class="stack-form floor-lookup-action">
           <label>&nbsp;</label>
@@ -146,6 +150,6 @@
     </section>
   </main>
 
-  <script type="module" src="client-snapshot.js?v=20260704c"></script>
+  <script type="module" src="client-snapshot.js?v=20260704d"></script>
 </body>
 </html>
