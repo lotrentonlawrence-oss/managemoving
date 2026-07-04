@@ -78,7 +78,7 @@ add:
    domain verification in the **Google Admin console** (admin.google.com) —
    Google will give you a TXT or HTML-file verification step.
 2. Create the `trenton@sweethometransitions.com` user (if not already there).
-3. Create `inquires@sweethometransitions.com` as either its own mailbox or a
+3. Create `hello@sweethometransitions.com` as either its own mailbox or a
    "Send As" alias — see `EMAIL_SETUP.md` for details, this is what the
    contact form uses to send inquiry notifications.
 4. Once mail is flowing, set up DKIM in Admin console → Apps → Google
