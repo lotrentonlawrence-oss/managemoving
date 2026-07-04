@@ -1,0 +1,251 @@
+:root {
+  --navy: #1e3550;
+  --navy-dark: #12263b;
+  --sage: #7b9b78;
+  --sage-dark: #617f5f;
+  --bg: #f3f6f1;
+  --card: #ffffff;
+  --line: #d6e0d3;
+  --ink: #20313f;
+  --muted: #5e6f65;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+h1, h2, h3 {
+  font-family: "Fraunces", serif;
+  margin: 0 0 10px;
+  color: var(--navy);
+}
+
+.portal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-main {
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 20px;
+  display: grid;
+  gap: 20px;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.form-note {
+  color: var(--sage-dark);
+  font-weight: 600;
+}
+
+label {
+  font-size: 0.86rem;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+button {
+  background: var(--sage);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:hover { background: var(--sage-dark); }
+
+.btn-ghost {
+  width: auto;
+  border: 1px solid var(--navy);
+  background: transparent;
+  color: var(--navy);
+}
+
+.btn-ghost:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
+.stack-form {
+  display: grid;
+  gap: 8px;
+}
+
+.split-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.split-three {
+  display: grid;
+  grid-template-columns: 1.2fr .8fr .8fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.list li {
+  margin: 6px 0;
+}
+
+.stat-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  background: #f8fbf6;
+}
+
+.stat-value {
+  margin: 0;
+  color: var(--navy-dark);
+  font-size: 1.8rem;
+  font-family: "Fraunces", serif;
+}
+
+.auction-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.table-wrap {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 10px 8px;
+  font-size: 0.92rem;
+}
+
+.portal-auth {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.auth-card form {
+  display: grid;
+  gap: 10px;
+}
+
+.back-link {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.back-link a {
+  color: var(--navy);
+  text-decoration: underline;
+}
+
+.floor-canvas {
+  position: relative;
+  border: 1px dashed var(--line);
+  background: #eef3eb;
+  border-radius: 12px;
+  min-height: 360px;
+  overflow: auto;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.client-canvas {
+  transform-origin: top left;
+}
+
+.floor-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: var(--navy);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: move;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.floor-marker small {
+  display: block;
+  color: #d9e3ea;
+}
+
+.floor-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 900px) {
+  .split-two, .split-three, .auction-summary {
+    grid-template-columns: 1fr;
+  }
+  .portal-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
