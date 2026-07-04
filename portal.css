@@ -83,7 +83,6 @@ input, select, button {
   font-size: 0.95rem;
 }
 
-input.address-input,
 input.address-input {
   background-color: #fff !important;
   color: var(--ink) !important;
@@ -111,12 +110,15 @@ input.address-input:disabled {
 
 .address-suggestions {
   display: none;
+  margin-top: 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
-  max-height: 220px;
+  max-height: 210px;
   overflow: auto;
   box-shadow: 0 8px 20px rgba(18, 38, 59, 0.12);
+  position: relative;
+  z-index: 20;
 }
 
 .address-suggestions.visible {
