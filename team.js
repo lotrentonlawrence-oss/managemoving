@@ -1,4 +1,11 @@
 import { observeAuth, logout, resolvePortalContext, db, storage, formatCurrency } from "./portal.js";
+import { FIREBASE_CONFIG } from "./firebase-config.js";
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signOut as signOutAuth
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   collection,
   query,
@@ -20,6 +27,9 @@ import {
 
 const projectSelect = document.getElementById("projectSelect");
 const logoutBtn = document.getElementById("logoutBtn");
+const clientAccessForm = document.getElementById("clientAccessForm");
+const clientEmailInput = document.getElementById("clientEmailInput");
+const clientPasscodeInput = document.getElementById("clientPasscodeInput");
 const hoursForm = document.getElementById("hoursForm");
 const hoursInput = document.getElementById("hoursInput");
 const contractorForm = document.getElementById("contractorForm");
@@ -57,6 +67,19 @@ function ensureProjectSelected() {
   if (!currentProjectId) {
     note("Select a project first.");
     return false;
+  }
+
+  async function createClientAuthAccount(email, passcode) {
+    const appName = `client-provision-${Date.now()}`;
+    const secondaryApp = initializeApp(FIREBASE_CONFIG, appName);
+    const secondaryAuth = getAuth(secondaryApp);
+    try {
+      const result = await createUserWithEmailAndPassword(secondaryAuth, email, passcode);
+      return result.user;
+    } finally {
+      await signOutAuth(secondaryAuth).catch(() => {});
+      await deleteApp(secondaryApp).catch(() => {});
+    }
   }
   return true;
 }
@@ -186,6 +209,49 @@ contractorForm.addEventListener("submit", async (event) => {
   await updateDoc(doc(db, "projects", currentProjectId), { contractors: next, updatedAt: serverTimestamp() });
   contractorInput.value = "";
   note("Contractor added.");
+});
+
+clientAccessForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!ensureProjectSelected()) return;
+
+  const email = clientEmailInput.value.trim().toLowerCase();
+  const passcode = clientPasscodeInput.value;
+  if (!email || !passcode) {
+    note("Enter client email and passcode.");
+    return;
+  }
+  if (passcode.length < 6) {
+    note("Client passcode must be at least 6 characters.");
+    return;
+  }
+
+  note("Creating client account...");
+  try {
+    const user = await createClientAuthAccount(email, passcode);
+    await setDoc(doc(db, "users", user.uid), {
+      email,
+      role: "client",
+      projectId: currentProjectId,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    await setDoc(doc(db, "projectMembers", user.uid), {
+      email,
+      role: "client",
+      projectId: currentProjectId,
+      createdBy: "trenton@sweethometransitions.com",
+      createdAt: serverTimestamp()
+    }, { merge: true });
+
+    clientAccessForm.reset();
+    note(`Client account created and linked to project: ${currentProjectId}`);
+  } catch (err) {
+    if (err && err.code === "auth/email-already-in-use") {
+      note("That email already has an account. Use Forgot password on login to set a new password.");
+      return;
+    }
+    note(err.message || "Unable to create client account.");
+  }
 });
 
 floorUploadForm.addEventListener("submit", async (event) => {
