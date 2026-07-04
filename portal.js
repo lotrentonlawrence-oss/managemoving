@@ -4,7 +4,9 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
-  getIdTokenResult
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  fetchSignInMethodsForEmail
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   getFirestore,
@@ -31,6 +33,18 @@ export async function logout() {
   return signOut(auth);
 }
 
+export async function createAccount(email, password) {
+  return createUserWithEmailAndPassword(auth, email, password);
+}
+
+export async function resetPasswordForRegisteredAccount(email) {
+  const methods = await fetchSignInMethodsForEmail(auth, email);
+  if (!methods || methods.length === 0) {
+    throw new Error("No registered account was found for that email.");
+  }
+  return sendPasswordResetEmail(auth, email);
+}
+
 export async function getMembership(uid) {
   const snap = await getDoc(doc(db, "projectMembers", uid));
   return snap.exists() ? snap.data() : null;
@@ -39,15 +53,7 @@ export async function getMembership(uid) {
 export async function isTeamUser(user) {
   if (!user) return false;
   const email = (user.email || "").toLowerCase();
-  const hasBusinessEmail = email.endsWith("@sweethometransitions.com");
-  if (!hasBusinessEmail) return false;
-
-  const token = await getIdTokenResult(user, true);
-  if (token.claims.team === true) return true;
-
-  const userDoc = await getDoc(doc(db, "users", user.uid));
-  if (!userDoc.exists()) return false;
-  return userDoc.data().role === "team";
+  return email === "trenton@sweethometransitions.com";
 }
 
 export async function resolvePortalContext(user) {
