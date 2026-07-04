@@ -68,6 +68,13 @@ img{max-width:100%;display:block;}
   width:auto;
   height:48px;
 }
+.site-header .brand-text{
+  font-family:'Fraunces',serif;
+  font-weight:500;
+  font-size:1.25rem;
+  letter-spacing:.01em;
+  color:var(--navy);
+}
 .brand-text em{color:var(--teal);font-style:normal;}
 .nav{display:flex;align-items:center;gap:28px;font-weight:500;}
 .nav a{color:var(--navy);font-size:.95rem;}
