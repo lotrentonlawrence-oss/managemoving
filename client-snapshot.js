@@ -46,9 +46,15 @@ const floorManualOverride = document.getElementById("floorManualOverride");
 const applyImportedFloorPlanBtn = document.getElementById("applyImportedFloorPlanBtn");
 const drawFloorShapeBtn = document.getElementById("drawFloorShapeBtn");
 const clearFloorShapeBtn = document.getElementById("clearFloorShapeBtn");
+const floorLevelsCountInput = document.getElementById("floorLevelsCount");
+const activeFloorLevelSelect = document.getElementById("activeFloorLevel");
+const zoomOutBtn = document.getElementById("zoomOutBtn");
+const zoomResetBtn = document.getElementById("zoomResetBtn");
+const zoomInBtn = document.getElementById("zoomInBtn");
 const floorShapeWidthFtInput = document.getElementById("floorShapeWidthFt");
 const floorShapeLengthFtInput = document.getElementById("floorShapeLengthFt");
 const floorRoomsList = document.getElementById("floorRoomsList");
+const iconPalette = document.getElementById("iconPalette");
 const itemForm = document.getElementById("itemForm");
 const itemIconType = document.getElementById("itemIconType");
 const itemHint = document.getElementById("itemHint");
@@ -77,8 +83,13 @@ let drawShapeMode = false;
 let drawShapeStart = null;
 let drawShapeDraft = null;
 let floorItemsCache = [];
+let floorItemsAllCache = [];
 let floorRoomsCache = [];
+let floorRoomsByLevelCache = {};
 let roomSaveTimer = null;
+let activeLevel = 1;
+let floorLevelCount = 1;
+let mapZoom = 1;
 
 const ICON_EMOJI = {
   tv: "📺",
@@ -119,6 +130,46 @@ function importedFloorPlanFromProject(project) {
     lengthFt: Number(dimensions.lengthFt || 0),
     sqft: Number(dimensions.sqft || 0)
   };
+}
+
+function levelKey(level) {
+  return `level_${Number(level || 1)}`;
+}
+
+function ensureLevelState() {
+  if (!Number.isFinite(activeLevel) || activeLevel < 1) activeLevel = 1;
+  if (!Number.isFinite(floorLevelCount) || floorLevelCount < 1) floorLevelCount = 1;
+  if (activeLevel > floorLevelCount) activeLevel = floorLevelCount;
+}
+
+function rebuildLevelSelect() {
+  ensureLevelState();
+  if (!activeFloorLevelSelect) return;
+  activeFloorLevelSelect.innerHTML = "";
+  for (let i = 1; i <= floorLevelCount; i += 1) {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = `Level ${i}`;
+    activeFloorLevelSelect.appendChild(opt);
+  }
+  activeFloorLevelSelect.value = String(activeLevel);
+  if (floorLevelsCountInput) floorLevelsCountInput.value = String(floorLevelCount);
+}
+
+function syncActiveLevelCaches() {
+  ensureLevelState();
+  const key = levelKey(activeLevel);
+  floorRoomsCache = Array.isArray(floorRoomsByLevelCache[key]) ? floorRoomsByLevelCache[key] : [];
+  floorItemsCache = floorItemsAllCache.filter(({ data }) => {
+    const itemLevel = Number(data.level || 1);
+    return itemLevel === activeLevel;
+  });
+}
+
+function setMapZoom(nextZoom) {
+  mapZoom = Math.max(0.5, Math.min(2.5, Number(nextZoom || 1)));
+  teamFloorCanvas.style.transformOrigin = "top left";
+  teamFloorCanvas.style.transform = `scale(${mapZoom})`;
 }
 
 function forceAddressInputEditable(input) {
@@ -495,7 +546,9 @@ clientAddressInput.addEventListener("change", () => {
 });
 
 function normalizedFloorRooms(project) {
-  const rooms = Array.isArray(project?.floorPlanRooms) ? project.floorPlanRooms : [];
+  const byLevel = project?.floorPlanRoomsByLevel || {};
+  const roomsAtLevel = Array.isArray(byLevel[levelKey(activeLevel)]) ? byLevel[levelKey(activeLevel)] : null;
+  const rooms = roomsAtLevel || (Array.isArray(project?.floorPlanRooms) ? project.floorPlanRooms : []);
   if (!rooms.length && project?.floorPlanShape) {
     const s = project.floorPlanShape;
     return [{
@@ -566,6 +619,21 @@ function renderRoomsOverlay(rooms) {
     roomEl.style.width = `${room.widthPct}%`;
     roomEl.style.height = `${room.heightPct}%`;
     roomEl.innerHTML = `<div class="floor-room-label">${room.name} (${room.widthFt || "?"}′ × ${room.lengthFt || "?"}′)</div>`;
+    roomEl.addEventListener("dblclick", () => {
+      const nextWidth = window.prompt(`${room.name} width (ft):`, String(room.widthFt || ""));
+      const nextLength = window.prompt(`${room.name} length (ft):`, String(room.lengthFt || ""));
+      floorRoomsCache = floorRoomsCache.map((r) => {
+        if (r.id !== room.id) return r;
+        return {
+          ...r,
+          widthFt: Number(nextWidth || r.widthFt || 0),
+          lengthFt: Number(nextLength || r.lengthFt || 0)
+        };
+      });
+      floorRoomsByLevelCache[levelKey(activeLevel)] = floorRoomsCache;
+      currentProject.floorPlanRoomsByLevel = floorRoomsByLevelCache;
+      queueSaveRooms();
+    });
     teamFloorCanvas.appendChild(roomEl);
   });
 
@@ -610,7 +678,8 @@ async function saveFloorShape(shape) {
     lengthFt: Number(shape.lengthFt || 0)
   }] : [];
   floorRoomsCache = nextRooms;
-  currentProject.floorPlanRooms = nextRooms;
+  floorRoomsByLevelCache[levelKey(activeLevel)] = nextRooms;
+  currentProject.floorPlanRoomsByLevel = floorRoomsByLevelCache;
   queueSaveRooms();
 }
 
@@ -649,7 +718,9 @@ function queueSaveRooms() {
     floorLengthFt.value = metrics.lengthFt ? metrics.lengthFt.toFixed(1) : "";
     floorSqft.value = metrics.sqft ? Math.round(metrics.sqft) : "";
     await updateDoc(doc(db, "projects", projectId), {
-      floorPlanRooms: floorRoomsCache,
+      floorPlanRoomsByLevel: floorRoomsByLevelCache,
+      floorPlanLevelCount: floorLevelCount,
+      floorPlanActiveLevel: activeLevel,
       floorPlanDimensions: {
         widthFt: metrics.widthFt,
         lengthFt: metrics.lengthFt,
@@ -694,16 +765,47 @@ function markerEl(itemId, item) {
   el.style.width = `${size.widthPct}%`;
   el.style.height = `${size.heightPct}%`;
   const icon = ICON_EMOJI[item.iconType] || "📦";
+  const widthFt = Number(item.widthFt || 0);
+  const depthFt = Number(item.depthFt || 0);
   const dims = Number(item.widthFt || 0) > 0 && Number(item.depthFt || 0) > 0
     ? `${Number(item.widthFt).toFixed(1)}' × ${Number(item.depthFt).toFixed(1)}'`
     : "";
-  el.innerHTML = `<span class="icon-emoji">${icon}</span><small>${item.label || "Item"}</small><small>${dims || (item.room || "")}</small>`;
+  el.innerHTML = `
+    <span class="icon-emoji">${icon}</span>
+    <small>${item.label || "Item"}</small>
+    <small>${dims || (item.room || "")}</small>
+    <button type="button" class="marker-edit-btn" data-role="toggle-editor">Edit</button>
+    <div class="marker-editor" data-role="editor">
+      <input type="number" min="0" step="0.1" data-role="widthFt" value="${widthFt || ""}" placeholder="Width ft">
+      <input type="number" min="0" step="0.1" data-role="depthFt" value="${depthFt || ""}" placeholder="Depth ft">
+    </div>
+  `;
+  const editBtn = el.querySelector("[data-role='toggle-editor']");
+  const editor = el.querySelector("[data-role='editor']");
+  editBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    editor.classList.toggle("visible");
+  });
+  editor.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("change", async (event) => {
+      event.stopPropagation();
+      const newWidth = Number(editor.querySelector("[data-role='widthFt']").value || 0);
+      const newDepth = Number(editor.querySelector("[data-role='depthFt']").value || 0);
+      await updateDoc(doc(db, "projects", projectId, "floorPlanItems", itemId), {
+        widthFt: newWidth,
+        depthFt: newDepth,
+        updatedAt: serverTimestamp()
+      });
+    });
+  });
   return el;
 }
 
 function enableMarkerDrag(el) {
   let dragging = false;
   el.addEventListener("pointerdown", (event) => {
+    if (event.target.closest(".marker-editor") || event.target.closest(".marker-edit-btn")) return;
     event.preventDefault();
     event.stopPropagation();
     if (drawShapeMode) return;
@@ -731,9 +833,11 @@ function enableMarkerDrag(el) {
 }
 
 function renderFloor(items = []) {
+  syncActiveLevelCaches();
   teamFloorCanvas.innerHTML = "";
   teamFloorCanvas.style.backgroundImage = currentProject.floorPlanUrl ? `url('${currentProject.floorPlanUrl}')` : "none";
   teamFloorCanvas.classList.toggle("draw-mode", drawShapeMode);
+  setMapZoom(mapZoom);
   renderRoomsOverlay(normalizedFloorRooms(currentProject));
   renderShapeDraft();
   items.forEach(({ id, data }) => {
@@ -805,7 +909,6 @@ teamFloorCanvas.addEventListener("pointerup", async (event) => {
   };
   floorShapeWidthFtInput.value = shape.widthFt || "";
   floorShapeLengthFtInput.value = shape.lengthFt || "";
-  currentProject.floorPlanShape = shape;
   await saveFloorShape(shape);
   itemHint.textContent = "Floor shape drawn. Add side dimensions to scale item icons.";
   renderFloor(floorItemsCache);
@@ -863,8 +966,8 @@ drawFloorShapeBtn.addEventListener("click", () => {
 });
 
 clearFloorShapeBtn.addEventListener("click", async () => {
-  currentProject.floorPlanShape = null;
-  currentProject.floorPlanRooms = [];
+  floorRoomsByLevelCache[levelKey(activeLevel)] = [];
+  currentProject.floorPlanRoomsByLevel = floorRoomsByLevelCache;
   floorRoomsCache = [];
   floorShapeWidthFtInput.value = "";
   floorShapeLengthFtInput.value = "";
@@ -872,6 +975,78 @@ clearFloorShapeBtn.addEventListener("click", async () => {
   renderFloor(floorItemsCache);
   renderRoomsEditor();
   itemHint.textContent = "Floor shape cleared.";
+});
+
+floorLevelsCountInput.addEventListener("change", async () => {
+  floorLevelCount = Math.max(1, Math.min(6, Number(floorLevelsCountInput.value || 1)));
+  if (activeLevel > floorLevelCount) activeLevel = floorLevelCount;
+  for (let i = 1; i <= floorLevelCount; i += 1) {
+    const key = levelKey(i);
+    if (!Array.isArray(floorRoomsByLevelCache[key])) floorRoomsByLevelCache[key] = [];
+  }
+  rebuildLevelSelect();
+  syncActiveLevelCaches();
+  renderRoomsEditor();
+  renderFloor(floorItemsCache);
+  await updateDoc(doc(db, "projects", projectId), {
+    floorPlanLevelCount: floorLevelCount,
+    floorPlanActiveLevel: activeLevel,
+    floorPlanRoomsByLevel: floorRoomsByLevelCache,
+    updatedAt: serverTimestamp()
+  });
+});
+
+activeFloorLevelSelect.addEventListener("change", async () => {
+  activeLevel = Number(activeFloorLevelSelect.value || 1);
+  syncActiveLevelCaches();
+  renderRoomsEditor();
+  renderFloor(floorItemsCache);
+  await updateDoc(doc(db, "projects", projectId), {
+    floorPlanActiveLevel: activeLevel,
+    updatedAt: serverTimestamp()
+  });
+});
+
+zoomInBtn.addEventListener("click", () => {
+  setMapZoom(mapZoom + 0.2);
+});
+zoomOutBtn.addEventListener("click", () => {
+  setMapZoom(mapZoom - 0.2);
+});
+zoomResetBtn.addEventListener("click", () => {
+  setMapZoom(1);
+});
+
+if (iconPalette) {
+  iconPalette.querySelectorAll(".icon-palette-item").forEach((btn) => {
+    btn.addEventListener("dragstart", (event) => {
+      event.dataTransfer.setData("text/floor-icon", btn.dataset.icon || "sofa");
+    });
+  });
+}
+
+teamFloorCanvas.addEventListener("dragover", (event) => {
+  event.preventDefault();
+});
+
+teamFloorCanvas.addEventListener("drop", async (event) => {
+  event.preventDefault();
+  const iconType = event.dataTransfer.getData("text/floor-icon");
+  if (!iconType) return;
+  const point = canvasPointPct(event);
+  await addDoc(collection(db, "projects", projectId, "floorPlanItems"), {
+    iconType,
+    label: iconType.charAt(0).toUpperCase() + iconType.slice(1),
+    widthFt: 0,
+    depthFt: 0,
+    room: "",
+    notes: "Added from icon key",
+    level: activeLevel,
+    x: point.xPct,
+    y: point.yPct,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
 });
 
 function handleRoomFieldUpdate(event) {
@@ -953,6 +1128,7 @@ itemForm.addEventListener("submit", async (event) => {
     label,
     widthFt,
     depthFt,
+    level: activeLevel,
     room,
     notes,
     x: pendingPosition.x,
@@ -1034,7 +1210,14 @@ observeAuth(async (user) => {
     contractorsInput.value = (currentProject.contractors || []).join("\n");
     teamNotesInput.value = currentProject.teamNotes || "";
     floorManualOverride.checked = currentProject.floorPlanManualOverride === true;
-    floorRoomsCache = normalizedFloorRooms(currentProject);
+    floorLevelCount = Math.max(1, Number(currentProject.floorPlanLevelCount || 1));
+    activeLevel = Math.max(1, Number(currentProject.floorPlanActiveLevel || 1));
+    floorRoomsByLevelCache = currentProject.floorPlanRoomsByLevel || {};
+    if (!floorRoomsByLevelCache[levelKey(1)]) {
+      floorRoomsByLevelCache[levelKey(1)] = normalizedFloorRooms(currentProject);
+    }
+    rebuildLevelSelect();
+    syncActiveLevelCaches();
     const lastRoom = floorRoomsCache[floorRoomsCache.length - 1];
     floorShapeWidthFtInput.value = lastRoom?.widthFt ? Number(lastRoom.widthFt) : "";
     floorShapeLengthFtInput.value = lastRoom?.lengthFt ? Number(lastRoom.lengthFt) : "";
@@ -1067,7 +1250,8 @@ observeAuth(async (user) => {
   });
 
   onSnapshot(floorQuery, (snap) => {
-    floorItemsCache = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    floorItemsAllCache = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    syncActiveLevelCaches();
     renderFloor(floorItemsCache);
   });
 
