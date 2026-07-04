@@ -44,8 +44,15 @@ const floorSourceNote = document.getElementById("floorSourceNote");
 const floorImportStatus = document.getElementById("floorImportStatus");
 const floorManualOverride = document.getElementById("floorManualOverride");
 const applyImportedFloorPlanBtn = document.getElementById("applyImportedFloorPlanBtn");
+const drawFloorShapeBtn = document.getElementById("drawFloorShapeBtn");
+const clearFloorShapeBtn = document.getElementById("clearFloorShapeBtn");
+const floorShapeWidthFtInput = document.getElementById("floorShapeWidthFt");
+const floorShapeLengthFtInput = document.getElementById("floorShapeLengthFt");
 const itemForm = document.getElementById("itemForm");
+const itemIconType = document.getElementById("itemIconType");
 const itemHint = document.getElementById("itemHint");
+const itemWidthFtInput = document.getElementById("itemWidthFt");
+const itemDepthFtInput = document.getElementById("itemDepthFt");
 const auctionForm = document.getElementById("auctionForm");
 const auctionTitle = document.getElementById("auctionTitle");
 const auctionStatus = document.getElementById("auctionStatus");
@@ -65,6 +72,20 @@ let addressGuardObserver = null;
 let addressGuardTimer = null;
 let suggestionRequestSeq = 0;
 const predictionCache = new Map();
+let drawShapeMode = false;
+let drawShapeStart = null;
+let drawShapeDraft = null;
+let floorItemsCache = [];
+
+const ICON_EMOJI = {
+  tv: "📺",
+  sofa: "🛋️",
+  dresser: "🗄️",
+  bed: "🛏️",
+  table: "🪑",
+  chair: "🪑",
+  lamp: "💡"
+};
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -470,13 +491,113 @@ clientAddressInput.addEventListener("change", () => {
   floorLookupAddress.value = clientAddressInput.value.trim();
 });
 
+function normalizedFloorShape(project) {
+  const shape = project?.floorPlanShape || {};
+  const x = Number(shape.xPct);
+  const y = Number(shape.yPct);
+  const width = Number(shape.widthPct);
+  const height = Number(shape.heightPct);
+  if (![x, y, width, height].every((n) => Number.isFinite(n) && n >= 0)) return null;
+  if (width <= 0 || height <= 0) return null;
+  return {
+    xPct: x,
+    yPct: y,
+    widthPct: width,
+    heightPct: height,
+    widthFt: Number(shape.widthFt || floorShapeWidthFtInput.value || floorWidthFt.value || 0),
+    lengthFt: Number(shape.lengthFt || floorShapeLengthFtInput.value || floorLengthFt.value || 0)
+  };
+}
+
+function itemSizePct(item, shape) {
+  const widthFt = Number(item.widthFt || 0);
+  const depthFt = Number(item.depthFt || 0);
+  if (!shape || shape.widthFt <= 0 || shape.lengthFt <= 0 || widthFt <= 0 || depthFt <= 0) {
+    return { widthPct: 7, heightPct: 7 };
+  }
+  const widthPct = Math.max(3, Math.min(35, (widthFt / shape.widthFt) * shape.widthPct));
+  const heightPct = Math.max(3, Math.min(35, (depthFt / shape.lengthFt) * shape.heightPct));
+  return { widthPct, heightPct };
+}
+
+function renderShapeOverlay(shape) {
+  if (!shape) return;
+  const shapeEl = document.createElement("div");
+  shapeEl.className = "floor-shape";
+  shapeEl.style.left = `${shape.xPct}%`;
+  shapeEl.style.top = `${shape.yPct}%`;
+  shapeEl.style.width = `${shape.widthPct}%`;
+  shapeEl.style.height = `${shape.heightPct}%`;
+
+  const widthLabel = document.createElement("div");
+  widthLabel.className = "shape-label horizontal";
+  widthLabel.textContent = shape.widthFt > 0 ? `${shape.widthFt.toFixed(1)} ft` : "width";
+
+  const lengthLabel = document.createElement("div");
+  lengthLabel.className = "shape-label vertical";
+  lengthLabel.textContent = shape.lengthFt > 0 ? `${shape.lengthFt.toFixed(1)} ft` : "length";
+
+  shapeEl.appendChild(widthLabel);
+  shapeEl.appendChild(lengthLabel);
+  teamFloorCanvas.appendChild(shapeEl);
+}
+
+function renderShapeDraft() {
+  if (!drawShapeDraft) return;
+  const draft = document.createElement("div");
+  draft.className = "floor-shape-preview";
+  draft.style.left = `${drawShapeDraft.xPct}%`;
+  draft.style.top = `${drawShapeDraft.yPct}%`;
+  draft.style.width = `${drawShapeDraft.widthPct}%`;
+  draft.style.height = `${drawShapeDraft.heightPct}%`;
+  teamFloorCanvas.appendChild(draft);
+}
+
+async function saveFloorShape(shape) {
+  await updateDoc(doc(db, "projects", projectId), {
+    floorPlanShape: shape ? {
+      xPct: shape.xPct,
+      yPct: shape.yPct,
+      widthPct: shape.widthPct,
+      heightPct: shape.heightPct,
+      widthFt: Number(shape.widthFt || 0),
+      lengthFt: Number(shape.lengthFt || 0)
+    } : null,
+    updatedAt: serverTimestamp()
+  });
+}
+
+function canvasPointPct(event) {
+  const rect = teamFloorCanvas.getBoundingClientRect();
+  return {
+    xPct: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+    yPct: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100))
+  };
+}
+
+function rectFromPoints(a, b) {
+  const xPct = Math.min(a.xPct, b.xPct);
+  const yPct = Math.min(a.yPct, b.yPct);
+  const widthPct = Math.abs(a.xPct - b.xPct);
+  const heightPct = Math.abs(a.yPct - b.yPct);
+  return { xPct, yPct, widthPct, heightPct };
+}
+
 function markerEl(itemId, item) {
   const el = document.createElement("div");
   el.className = "floor-marker";
   el.dataset.id = itemId;
+  const shape = normalizedFloorShape(currentProject);
+  const size = itemSizePct(item, shape);
   el.style.left = `${item.x || 50}%`;
   el.style.top = `${item.y || 50}%`;
-  el.innerHTML = `${item.label || "Item"}<small>${item.room || ""}</small>`;
+  el.style.width = `${size.widthPct}%`;
+  el.style.height = `${size.heightPct}%`;
+  const icon = ICON_EMOJI[item.iconType] || "📦";
+  const dims = Number(item.widthFt || 0) > 0 && Number(item.depthFt || 0) > 0
+    ? `${Number(item.widthFt).toFixed(1)}' × ${Number(item.depthFt).toFixed(1)}'`
+    : "";
+  el.innerHTML = `<span class="icon-emoji">${icon}</span><small>${item.label || "Item"}</small><small>${dims || (item.room || "")}</small>`;
   return el;
 }
 
@@ -484,6 +605,8 @@ function enableMarkerDrag(el) {
   let dragging = false;
   el.addEventListener("pointerdown", (event) => {
     event.preventDefault();
+    event.stopPropagation();
+    if (drawShapeMode) return;
     dragging = true;
     el.setPointerCapture(event.pointerId);
   });
@@ -510,6 +633,9 @@ function enableMarkerDrag(el) {
 function renderFloor(items = []) {
   teamFloorCanvas.innerHTML = "";
   teamFloorCanvas.style.backgroundImage = currentProject.floorPlanUrl ? `url('${currentProject.floorPlanUrl}')` : "none";
+  teamFloorCanvas.classList.toggle("draw-mode", drawShapeMode);
+  renderShapeOverlay(normalizedFloorShape(currentProject));
+  renderShapeDraft();
   items.forEach(({ id, data }) => {
     const el = markerEl(id, data);
     enableMarkerDrag(el);
@@ -540,12 +666,56 @@ function renderAuction(items = []) {
   });
 }
 
-teamFloorCanvas.addEventListener("click", (event) => {
-  const rect = teamFloorCanvas.getBoundingClientRect();
-  pendingPosition = {
-    x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
-    y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100))
+teamFloorCanvas.addEventListener("pointerdown", (event) => {
+  if (!drawShapeMode) return;
+  if (event.target !== teamFloorCanvas) return;
+  drawShapeStart = canvasPointPct(event);
+  drawShapeDraft = {
+    xPct: drawShapeStart.xPct,
+    yPct: drawShapeStart.yPct,
+    widthPct: 0,
+    heightPct: 0
   };
+  renderFloor(floorItemsCache);
+});
+
+teamFloorCanvas.addEventListener("pointermove", (event) => {
+  if (!drawShapeMode || !drawShapeStart) return;
+  const nextPoint = canvasPointPct(event);
+  drawShapeDraft = rectFromPoints(drawShapeStart, nextPoint);
+  renderFloor(floorItemsCache);
+});
+
+teamFloorCanvas.addEventListener("pointerup", async (event) => {
+  if (!drawShapeMode || !drawShapeStart) return;
+  const endPoint = canvasPointPct(event);
+  const rectShape = rectFromPoints(drawShapeStart, endPoint);
+  drawShapeStart = null;
+  drawShapeDraft = null;
+  if (rectShape.widthPct < 2 || rectShape.heightPct < 2) {
+    itemHint.textContent = "Shape draw cancelled (too small). Drag a larger rectangle.";
+    renderFloor(floorItemsCache);
+    return;
+  }
+
+  const shape = {
+    ...rectShape,
+    widthFt: Number(floorShapeWidthFtInput.value || floorWidthFt.value || 0),
+    lengthFt: Number(floorShapeLengthFtInput.value || floorLengthFt.value || 0)
+  };
+  floorShapeWidthFtInput.value = shape.widthFt || "";
+  floorShapeLengthFtInput.value = shape.lengthFt || "";
+  currentProject.floorPlanShape = shape;
+  await saveFloorShape(shape);
+  itemHint.textContent = "Floor shape drawn. Add side dimensions to scale item icons.";
+  renderFloor(floorItemsCache);
+});
+
+teamFloorCanvas.addEventListener("click", (event) => {
+  if (drawShapeMode) return;
+  if (event.target !== teamFloorCanvas) return;
+  const point = canvasPointPct(event);
+  pendingPosition = { x: point.xPct, y: point.yPct };
   itemHint.textContent = `Placement selected: ${pendingPosition.x.toFixed(1)}%, ${pendingPosition.y.toFixed(1)}%`;
 });
 
@@ -581,6 +751,36 @@ floorLookupForm.addEventListener("submit", async (event) => {
   } catch (err) {
     setFloorImportStatus(err.message || "Unable to import floor plan from address.");
   }
+});
+
+drawFloorShapeBtn.addEventListener("click", () => {
+  drawShapeMode = !drawShapeMode;
+  drawFloorShapeBtn.textContent = drawShapeMode ? "Drawing Enabled (Click & Drag)" : "Draw Floor Plan Shape";
+  itemHint.textContent = drawShapeMode
+    ? "Draw mode on: click and drag to create a 4-sided floor shape."
+    : "Tip: click anywhere on the map before adding an item to set its position.";
+  renderFloor(floorItemsCache);
+});
+
+clearFloorShapeBtn.addEventListener("click", async () => {
+  currentProject.floorPlanShape = null;
+  floorShapeWidthFtInput.value = "";
+  floorShapeLengthFtInput.value = "";
+  await saveFloorShape(null);
+  renderFloor(floorItemsCache);
+  itemHint.textContent = "Floor shape cleared.";
+});
+
+[floorShapeWidthFtInput, floorShapeLengthFtInput].forEach((input) => {
+  input.addEventListener("change", async () => {
+    const shape = normalizedFloorShape(currentProject);
+    if (!shape) return;
+    shape.widthFt = Number(floorShapeWidthFtInput.value || shape.widthFt || 0);
+    shape.lengthFt = Number(floorShapeLengthFtInput.value || shape.lengthFt || 0);
+    currentProject.floorPlanShape = shape;
+    await saveFloorShape(shape);
+    renderFloor(floorItemsCache);
+  });
 });
 
 floorManualOverride.addEventListener("change", async () => {
@@ -620,12 +820,18 @@ applyImportedFloorPlanBtn.addEventListener("click", async () => {
 
 itemForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const iconType = itemIconType.value;
   const label = document.getElementById("itemLabel").value.trim();
+  const widthFt = Number(itemWidthFtInput.value || 0);
+  const depthFt = Number(itemDepthFtInput.value || 0);
   const room = document.getElementById("itemRoom").value.trim();
   const notes = document.getElementById("itemNotes").value.trim();
   if (!label) return;
   await addDoc(collection(db, "projects", projectId, "floorPlanItems"), {
+    iconType,
     label,
+    widthFt,
+    depthFt,
     room,
     notes,
     x: pendingPosition.x,
@@ -707,6 +913,9 @@ observeAuth(async (user) => {
     contractorsInput.value = (currentProject.contractors || []).join("\n");
     teamNotesInput.value = currentProject.teamNotes || "";
     floorManualOverride.checked = currentProject.floorPlanManualOverride === true;
+    const shape = normalizedFloorShape(currentProject);
+    floorShapeWidthFtInput.value = shape?.widthFt ? Number(shape.widthFt) : "";
+    floorShapeLengthFtInput.value = shape?.lengthFt ? Number(shape.lengthFt) : "";
     const dimensions = currentProject.floorPlanDimensions || {};
     floorWidthFt.value = Number(dimensions.widthFt || 0) || "";
     floorLengthFt.value = Number(dimensions.lengthFt || 0) || "";
@@ -731,11 +940,12 @@ observeAuth(async (user) => {
     }
     snapshotTitle.textContent = `Client Snapshot — ${currentProject.clientName || currentProject.title || projectId}`;
     suppressAutosave = false;
+    renderFloor(floorItemsCache);
   });
 
   onSnapshot(floorQuery, (snap) => {
-    const items = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    renderFloor(items);
+    floorItemsCache = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    renderFloor(floorItemsCache);
   });
 
   onSnapshot(auctionQuery, (snap) => {
