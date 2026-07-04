@@ -347,6 +347,10 @@ th, td {
   background-position: center;
 }
 
+.floor-canvas.draw-mode {
+  cursor: crosshair;
+}
+
 .client-canvas {
   transform-origin: top left;
 }
@@ -354,8 +358,18 @@ th, td {
 .floor-marker {
   position: absolute;
   transform: translate(-50%, -50%);
-  background: var(--navy);
+  background: rgba(30, 53, 80, 0.88);
   color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 34px;
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  text-align: center;
+  line-height: 1.05;
 }
 
 a.btn-ghost {
@@ -371,6 +385,48 @@ a.btn-ghost {
 .floor-marker small {
   display: block;
   color: #d9e3ea;
+  font-size: 0.65rem;
+}
+
+.icon-emoji {
+  font-size: 1rem;
+}
+
+.item-dims {
+  font-size: 0.6rem;
+}
+
+.floor-shape,
+.floor-shape-preview {
+  position: absolute;
+  border: 2px solid #2d6a4f;
+  background: rgba(123, 155, 120, 0.14);
+}
+
+.floor-shape-preview {
+  border-style: dashed;
+}
+
+.shape-label {
+  position: absolute;
+  font-size: 0.75rem;
+  background: rgba(30, 53, 80, 0.9);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.shape-label.horizontal {
+  left: 50%;
+  top: -22px;
+  transform: translateX(-50%);
+}
+
+.shape-label.vertical {
+  left: -8px;
+  top: 50%;
+  transform: translate(-100%, -50%) rotate(-90deg);
 }
 
 .floor-controls {
