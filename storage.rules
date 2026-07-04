@@ -8,7 +8,7 @@ service firebase.storage {
     function isTrentonBusinessEmail() {
       return isAuthenticated() &&
         request.auth.token.email != null &&
-        request.auth.token.email == "trenton@sweethometransitions.com";
+        request.auth.token.email.matches("^[Tt][Rr][Ee][Nn][Tt][Oo][Nn]@([Ss][Ww][Ee][Ee][Tt][Hh][Oo][Mm][Ee][Tt][Rr][Aa][Nn][Ss][Ii][Tt][Ii][Oo][Nn][Ss])\\.([Cc][Oo][Mm])$");
     }
 
     function isTeam() {
