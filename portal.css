@@ -123,6 +123,18 @@ button:hover { background: var(--sage-dark); }
   align-items: center;
 }
 
+.floor-lookup {
+  margin-bottom: 12px;
+}
+
+.floor-lookup-action {
+  align-self: end;
+}
+
+.floor-meta-grid {
+  margin-bottom: 10px;
+}
+
 .split-lead {
   display: grid;
   grid-template-columns: 1fr 1fr .9fr .9fr auto;
