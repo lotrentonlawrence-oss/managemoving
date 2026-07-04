@@ -1,11 +1,11 @@
 :root{
-  --navy:#1f3a52;
-  --navy-dark:#152a3d;
-  --teal:#2f7d6f;
-  --teal-dark:#256459;
-  --gold:#c8963e;
-  --cream:#faf6ef;
-  --cream-2:#f3ece0;
+  --navy:#1e3550;
+  --navy-dark:#12263b;
+  --teal:#7b9b78;
+  --teal-dark:#617f5f;
+  --gold:#a9c2a5;
+  --cream:#f3f6f1;
+  --cream-2:#e8eee5;
   --ink:#26313b;
   --muted:#5c6b76;
   --white:#ffffff;
@@ -59,6 +59,14 @@ img{max-width:100%;display:block;}
   height:40px;
   object-fit:contain;
   display:block;
+}
+.site-header .brand-logo{
+  width:auto;
+  height:66px;
+}
+.site-footer .brand-logo{
+  width:auto;
+  height:48px;
 }
 .brand-text em{color:var(--teal);font-style:normal;}
 .nav{display:flex;align-items:center;gap:28px;font-weight:500;}
@@ -244,6 +252,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   }
   .nav.open{display:flex;}
   .nav-toggle{display:flex;}
+  .site-header .brand-logo{height:56px;}
   .price-card.featured{transform:none;}
 }
 @media (max-width:600px){
