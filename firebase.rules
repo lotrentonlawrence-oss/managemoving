@@ -11,8 +11,15 @@ service cloud.firestore {
         request.auth.token.email.matches("^[Tt][Rr][Ee][Nn][Tt][Oo][Nn]@([Ss][Ww][Ee][Ee][Tt][Hh][Oo][Mm][Ee][Tt][Rr][Aa][Nn][Ss][Ii][Tt][Ii][Oo][Nn][Ss])\\.([Cc][Oo][Mm])$");
     }
 
+    function isTeamByRoleDoc() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "team";
+    }
+
     function isTeam() {
-      return isTrentonBusinessEmail();
+      return isTrentonBusinessEmail() ||
+        request.auth.token.team == true ||
+        isTeamByRoleDoc();
     }
 
     function isProjectClient(projectId) {
