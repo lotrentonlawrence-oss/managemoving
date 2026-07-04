@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="portal.css?v=20260704h">
+  <link rel="stylesheet" href="portal.css?v=20260704j">
 </head>
 <body>
   <header class="portal-header">
@@ -110,22 +110,23 @@
       </div>
       <div class="floor-workflow-row">
         <button id="drawFloorShapeBtn" type="button" class="btn-ghost">Draw Floor Plan Shape</button>
-        <button id="clearFloorShapeBtn" type="button" class="btn-ghost">Clear Shape</button>
+        <button id="clearFloorShapeBtn" type="button" class="btn-ghost">Clear All Rooms</button>
       </div>
       <div class="split-three floor-meta-grid">
         <div class="stack-form">
-          <label for="floorShapeWidthFt">Shape Width Side (ft)</label>
+          <label for="floorShapeWidthFt">Next Room Width (ft)</label>
           <input id="floorShapeWidthFt" type="number" step="0.1" min="0" placeholder="Ex: 34">
         </div>
         <div class="stack-form">
-          <label for="floorShapeLengthFt">Shape Length Side (ft)</label>
+          <label for="floorShapeLengthFt">Next Room Length (ft)</label>
           <input id="floorShapeLengthFt" type="number" step="0.1" min="0" placeholder="Ex: 52">
         </div>
         <div class="stack-form">
-          <label for="floorShapeScaleNote">Shape Scale</label>
-          <input id="floorShapeScaleNote" type="text" value="Used to size icons proportionally" disabled>
+          <label for="floorShapeScaleNote">Scale Note</label>
+          <input id="floorShapeScaleNote" type="text" value="Room dimensions auto-adjust overall floor dimensions" disabled>
         </div>
       </div>
+      <div id="floorRoomsList" class="rooms-list"></div>
       <p id="floorSourceNote" class="muted"></p>
       <p id="floorImportStatus" class="muted"></p>
       <div class="split-two">
@@ -190,6 +191,6 @@
     </section>
   </main>
 
-  <script type="module" src="client-snapshot.js?v=20260704h"></script>
+  <script type="module" src="client-snapshot.js?v=20260704j"></script>
 </body>
 </html>
