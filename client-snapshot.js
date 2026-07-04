@@ -58,6 +58,8 @@ let saveTimer = null;
 let suppressAutosave = false;
 let mapsPlacesLoader = null;
 let placesPredictionService = null;
+let addressGuardObserver = null;
+let addressGuardTimer = null;
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -70,6 +72,44 @@ function setSaveNote(text) {
 
 function setFloorSourceNote(text) {
   floorSourceNote.textContent = text || "";
+}
+
+function forceAddressInputEditable(input) {
+  if (!input) return;
+  if (input.disabled) input.disabled = false;
+  if (input.readOnly) input.readOnly = false;
+  input.removeAttribute("disabled");
+  input.removeAttribute("readonly");
+}
+
+function enforceAddressInputsEditable() {
+  forceAddressInputEditable(clientAddressInput);
+  forceAddressInputEditable(floorLookupAddress);
+}
+
+function installEditableAddressGuard() {
+  if (addressGuardTimer) return;
+  enforceAddressInputsEditable();
+
+  [clientAddressInput, floorLookupAddress].forEach((input) => {
+    if (!input) return;
+    ["focus", "click", "pointerdown", "mousedown", "keydown", "input"].forEach((eventName) => {
+      input.addEventListener(eventName, enforceAddressInputsEditable);
+    });
+  });
+
+  addressGuardObserver = new MutationObserver(() => {
+    enforceAddressInputsEditable();
+  });
+  [clientAddressInput, floorLookupAddress].forEach((input) => {
+    if (!input) return;
+    addressGuardObserver.observe(input, {
+      attributes: true,
+      attributeFilter: ["readonly", "disabled", "style", "class"]
+    });
+  });
+
+  addressGuardTimer = window.setInterval(enforceAddressInputsEditable, 300);
 }
 
 function loadGoogleMapsPlaces() {
@@ -102,19 +142,42 @@ function loadGoogleMapsPlaces() {
   return mapsPlacesLoader;
 }
 
-function renderAddressSuggestions(datalistEl, predictions) {
-  if (!datalistEl) return;
-  datalistEl.innerHTML = "";
-  predictions.slice(0, 8).forEach((prediction) => {
-    const option = document.createElement("option");
-    option.value = prediction.description;
-    datalistEl.appendChild(option);
-  });
+function hideSuggestionList(listEl) {
+  if (!listEl) return;
+  listEl.innerHTML = "";
+  listEl.classList.remove("visible");
 }
 
-function requestAddressPredictions(value, datalistEl) {
+function renderSuggestionList(listEl, predictions, primaryInput, mirrorInput) {
+  if (!listEl) return;
+  listEl.innerHTML = "";
+  if (!predictions || !predictions.length) {
+    listEl.classList.remove("visible");
+    return;
+  }
+
+  predictions.slice(0, 8).forEach((prediction) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "address-suggestion-item";
+    item.textContent = prediction.description;
+    item.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      const selected = prediction.description;
+      primaryInput.value = selected;
+      mirrorInput.value = selected;
+      hideSuggestionList(listEl);
+      queueAutosave();
+      enforceAddressInputsEditable();
+    });
+    listEl.appendChild(item);
+  });
+  listEl.classList.add("visible");
+}
+
+function requestAddressPredictions(value, listEl, primaryInput, mirrorInput) {
   if (!placesPredictionService || !value || value.trim().length < 3) {
-    renderAddressSuggestions(datalistEl, []);
+    hideSuggestionList(listEl);
     return;
   }
 
@@ -125,35 +188,50 @@ function requestAddressPredictions(value, datalistEl) {
   }, (predictions, status) => {
     const okStatus = window.google.maps.places.PlacesServiceStatus.OK;
     if (status !== okStatus || !predictions) {
-      renderAddressSuggestions(datalistEl, []);
+      hideSuggestionList(listEl);
       return;
     }
-    renderAddressSuggestions(datalistEl, predictions);
+    renderSuggestionList(listEl, predictions, primaryInput, mirrorInput);
   });
 }
 
-function bindAddressSuggestionInput(primaryInput, mirrorInput, datalistEl) {
-  if (!primaryInput || !mirrorInput || !datalistEl) return;
+function bindAddressSuggestionInput(primaryInput, mirrorInput, listEl) {
+  if (!primaryInput || !mirrorInput || !listEl) return;
   if (primaryInput.dataset.mapsAutocompleteBound === "1") return;
   primaryInput.dataset.mapsAutocompleteBound = "1";
 
   let debounceTimer = null;
   primaryInput.addEventListener("input", () => {
+    enforceAddressInputsEditable();
     mirrorInput.value = primaryInput.value;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      requestAddressPredictions(primaryInput.value, datalistEl);
+      requestAddressPredictions(primaryInput.value, listEl, primaryInput, mirrorInput);
     }, 150);
   });
 
   primaryInput.addEventListener("change", () => {
+    enforceAddressInputsEditable();
     mirrorInput.value = primaryInput.value.trim();
+    hideSuggestionList(listEl);
     queueAutosave();
+  });
+
+  primaryInput.addEventListener("blur", () => {
+    window.setTimeout(() => hideSuggestionList(listEl), 180);
+  });
+
+  primaryInput.addEventListener("focus", () => {
+    enforceAddressInputsEditable();
+    if (primaryInput.value.trim().length >= 3) {
+      requestAddressPredictions(primaryInput.value, listEl, primaryInput, mirrorInput);
+    }
   });
 }
 
 async function initAddressAutocomplete() {
   try {
+    installEditableAddressGuard();
     const loaded = await loadGoogleMapsPlaces();
     if (!loaded) return;
     placesPredictionService = new window.google.maps.places.AutocompleteService();
@@ -472,6 +550,7 @@ observeAuth(async (user) => {
     window.location.href = "./team.html";
     return;
   }
+  installEditableAddressGuard();
   initAddressAutocomplete();
 
   const projectRef = doc(db, "projects", projectId);
