@@ -12,7 +12,7 @@ Valley, AL.
 - `styles.css` — styling
 - `script.js` — mobile nav + contact form submission logic
 - `apps-script/Code.gs` — Google Apps Script that emails contact-form
-  submissions from `inquires@sweethometransitions.com` to
+  submissions from `hello@sweethometransitions.com` to
   `trenton@sweethometransitions.com`
 - `CNAME` — tells GitHub Pages to serve this site at
   `sweethometransitions.com`
