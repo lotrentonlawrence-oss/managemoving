@@ -5,8 +5,14 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    function isTeam() {
+    function hasBusinessEmail() {
       return isAuthenticated() &&
+        request.auth.token.email != null &&
+        request.auth.token.email.matches('.*@sweethometransitions\\.com$');
+    }
+
+    function isTeam() {
+      return hasBusinessEmail() &&
         request.auth.token.team == true;
     }
 
