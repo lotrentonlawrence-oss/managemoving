@@ -200,6 +200,27 @@ button:hover { background: var(--sage-dark); }
   margin-bottom: 10px;
 }
 
+.floor-workflow-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.checkbox-inline input[type="checkbox"] {
+  width: auto;
+}
+
 .split-lead {
   display: grid;
   grid-template-columns: 1fr 1fr .9fr .9fr auto;
