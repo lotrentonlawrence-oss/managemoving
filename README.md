@@ -64,6 +64,8 @@ constant in `script.js`.
 7. Configure automated floor-plan import:
    - Set `FLOOR_PLAN_LOOKUP_ENDPOINT` in `firebase-config.js` to your HTTPS
      backend endpoint (Cloud Function or API).
+   - Set `GOOGLE_MAPS_API_KEY` in `firebase-config.js` (Places API enabled) so
+     address fields show live Google address suggestions while typing.
    - Endpoint should accept `{ projectId, address }`, query approved providers,
      upload selected floor-plan image to Firebase Storage, and return:
      - `floorPlanUrl`
