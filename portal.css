@@ -123,6 +123,13 @@ button:hover { background: var(--sage-dark); }
   align-items: center;
 }
 
+.split-client {
+  display: grid;
+  grid-template-columns: 1.2fr .8fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
 .list {
   margin: 10px 0 0;
   padding-left: 18px;
@@ -189,11 +196,28 @@ th, td {
   gap: 10px;
 }
 
-.auth-actions {
+.auth-links {
   margin-top: 10px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.text-link {
+  width: auto;
+  border: none;
+  background: none;
+  color: var(--navy);
+  padding: 0;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.text-link:hover {
+  color: var(--sage-dark);
+  background: none;
 }
 
 .back-link {
@@ -248,7 +272,7 @@ th, td {
 }
 
 @media (max-width: 900px) {
-  .split-two, .split-three, .auction-summary {
+  .split-two, .split-three, .split-client, .auction-summary {
     grid-template-columns: 1fr;
   }
   .portal-header {
