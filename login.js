@@ -53,13 +53,13 @@ form.addEventListener("submit", async (event) => {
 createAccountBtn.addEventListener("click", async () => {
   const email = askEmail(form.email.value.trim());
   if (!email) {
-    note.textContent = "Account creation cancelled.";
+    note.textContent = "Passcode setup cancelled.";
     return;
   }
 
   const password = window.prompt("Choose a password (minimum 6 characters):", "");
   if (!password) {
-    note.textContent = "Account creation cancelled.";
+    note.textContent = "Passcode setup cancelled.";
     return;
   }
   if (password.length < 6) {
@@ -67,14 +67,18 @@ createAccountBtn.addEventListener("click", async () => {
     return;
   }
 
-  note.textContent = "Creating account...";
+  note.textContent = "Setting up account passcode...";
   try {
     const result = await createAccount(email, password);
     form.email.value = email;
     const ctx = await resolvePortalContext(result.user);
     routeByRole(ctx.role);
   } catch (err) {
-    note.textContent = err.message || "Unable to create account.";
+    if (err && err.code === "auth/email-already-in-use") {
+      note.textContent = "Account already exists. Use \"Forgot password?\" to set a new password by email.";
+      return;
+    }
+    note.textContent = err.message || "Unable to set up account.";
   }
 });
 
@@ -85,11 +89,11 @@ forgotPasswordBtn.addEventListener("click", async () => {
     return;
   }
 
-  note.textContent = "Sending password setup/reset email...";
+  note.textContent = "Sending password setup email...";
   try {
     await resetPasswordForRegisteredAccount(email);
     form.email.value = email;
-    note.textContent = "Password setup/reset email sent.";
+    note.textContent = "Password setup email sent.";
   } catch (err) {
     note.textContent = err.message || "Unable to send password reset.";
   }
