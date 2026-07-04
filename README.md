@@ -62,15 +62,24 @@ constant in `script.js`.
    - Open **Client Snapshot** from the pipeline card to manage project details,
      floor plan, auctions, and notes with autosave.
 7. Configure automated floor-plan import:
-   - Set `FLOOR_PLAN_LOOKUP_ENDPOINT` in `firebase-config.js` to your HTTPS
-     backend endpoint (Cloud Function or API).
+   - `FLOOR_PLAN_LOOKUP_ENDPOINT` is pre-wired to:
+     `https://us-central1-sweet-home-transitions.cloudfunctions.net/floorPlanLookup`
    - Set `GOOGLE_MAPS_API_KEY` in `firebase-config.js` (Places API enabled) so
      address fields show live Google address suggestions while typing.
-   - Endpoint should accept `{ projectId, address }`, query approved providers,
-     upload selected floor-plan image to Firebase Storage, and return:
+   - Configure provider connectors for the function with environment variables:
+     - `ZILLOW_PROVIDER_URL` (+ optional `ZILLOW_API_KEY`)
+     - `REALTOR_PROVIDER_URL` (+ optional `REALTOR_API_KEY`)
+     - `HOMES_PROVIDER_URL` (+ optional `HOMES_API_KEY`)
+     - `COUNTY_PROVIDER_URL` (+ optional `COUNTY_PROVIDER_API_KEY`)
+   - Each provider URL should accept `POST { address }` and return JSON with:
+     - `floorPlanUrl` (or `imageUrl`)
+     - optional `dimensions: { widthFt, lengthFt, sqft }`
+     - optional `sourceUrl`, `updatedAt`
+   - The function stores the selected floor-plan image in Firebase Storage,
+     updates `projects/{projectId}`, and returns:
      - `floorPlanUrl`
      - `dimensions: { widthFt, lengthFt, sqft }`
-     - `source` and `sourceUrl`
+     - `source`, `sourceUrl`, `provider`
    - In **Client Snapshot**, use **Find & Import Floor Plan** to auto-populate
      floor plan image + dimensions from the address.
 
@@ -79,8 +88,11 @@ Firebase CLI deploy (from this folder):
 ```bash
 firebase login
 firebase use sweet-home-transitions
-firebase deploy --only firestore:rules,firestore:indexes,storage
+firebase deploy --only functions,firestore:rules,firestore:indexes,storage
 ```
+
+Set those as runtime environment variables for the `floorPlanLookup` function
+in your Cloud Functions deployment configuration.
 
 Current team-access restriction: only `trenton@sweethometransitions.com`
 can access `team.html`.
