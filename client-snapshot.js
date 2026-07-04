@@ -1,4 +1,5 @@
-import { observeAuth, logout, resolvePortalContext, db, storage } from "./portal.js";
+import { observeAuth, logout, resolvePortalContext, db, storage, auth } from "./portal.js";
+import { FLOOR_PLAN_LOOKUP_ENDPOINT } from "./firebase-config.js";
 import {
   doc,
   onSnapshot,
@@ -32,6 +33,12 @@ const teamNotesInput = document.getElementById("teamNotesInput");
 const floorUploadForm = document.getElementById("floorUploadForm");
 const floorImage = document.getElementById("floorImage");
 const teamFloorCanvas = document.getElementById("teamFloorCanvas");
+const floorLookupForm = document.getElementById("floorLookupForm");
+const floorLookupAddress = document.getElementById("floorLookupAddress");
+const floorWidthFt = document.getElementById("floorWidthFt");
+const floorLengthFt = document.getElementById("floorLengthFt");
+const floorSqft = document.getElementById("floorSqft");
+const floorSourceNote = document.getElementById("floorSourceNote");
 const itemForm = document.getElementById("itemForm");
 const itemHint = document.getElementById("itemHint");
 const auctionForm = document.getElementById("auctionForm");
@@ -57,6 +64,10 @@ function setSaveNote(text) {
   snapshotSaveNote.textContent = text;
 }
 
+function setFloorSourceNote(text) {
+  floorSourceNote.textContent = text || "";
+}
+
 function toContractorArray(value) {
   return value
     .split("\n")
@@ -78,10 +89,87 @@ async function saveSnapshotChanges() {
     hoursAtHome: Number(hoursAtHomeInput.value || 0),
     contractors: toContractorArray(contractorsInput.value),
     teamNotes: teamNotesInput.value.trim(),
+    floorPlanDimensions: {
+      widthFt: Number(floorWidthFt.value || 0),
+      lengthFt: Number(floorLengthFt.value || 0),
+      sqft: Number(floorSqft.value || 0)
+    },
     updatedAt: serverTimestamp()
   };
 
   await updateDoc(doc(db, "projects", projectId), payload);
+}
+
+function parseLookupResult(result) {
+  const dimensions = result && result.dimensions ? result.dimensions : {};
+  const floorPlanUrl = result && result.floorPlanUrl ? String(result.floorPlanUrl) : "";
+  const source = result && result.source ? String(result.source) : "Data provider";
+  const sourceUrl = result && result.sourceUrl ? String(result.sourceUrl) : "";
+  return {
+    floorPlanUrl,
+    source,
+    sourceUrl,
+    widthFt: Number(dimensions.widthFt || 0),
+    lengthFt: Number(dimensions.lengthFt || 0),
+    sqft: Number(dimensions.sqft || 0)
+  };
+}
+
+async function runFloorPlanLookup() {
+  const address = floorLookupAddress.value.trim() || clientAddressInput.value.trim();
+  if (!address) {
+    throw new Error("Enter an address before running floor plan lookup.");
+  }
+  if (!FLOOR_PLAN_LOOKUP_ENDPOINT) {
+    throw new Error("Set FLOOR_PLAN_LOOKUP_ENDPOINT in firebase-config.js before using lookup.");
+  }
+
+  const authUser = auth.currentUser;
+  if (!authUser) {
+    throw new Error("You must be signed in to run floor plan lookup.");
+  }
+  const token = await authUser.getIdToken();
+  const response = await fetch(FLOOR_PLAN_LOOKUP_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      projectId,
+      address
+    })
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || body.message || "Lookup provider request failed.");
+  }
+  const parsed = parseLookupResult(body);
+  if (!parsed.floorPlanUrl) {
+    throw new Error("No floor plan image returned for this address.");
+  }
+
+  floorWidthFt.value = parsed.widthFt || "";
+  floorLengthFt.value = parsed.lengthFt || "";
+  floorSqft.value = parsed.sqft || "";
+  setFloorSourceNote(parsed.sourceUrl ? `Source: ${parsed.source} (${parsed.sourceUrl})` : `Source: ${parsed.source}`);
+
+  await updateDoc(doc(db, "projects", projectId), {
+    clientAddress: address,
+    floorPlanUrl: parsed.floorPlanUrl,
+    floorPlanDimensions: {
+      widthFt: parsed.widthFt,
+      lengthFt: parsed.lengthFt,
+      sqft: parsed.sqft
+    },
+    floorPlanSource: {
+      name: parsed.source,
+      url: parsed.sourceUrl,
+      importedAt: serverTimestamp()
+    },
+    updatedAt: serverTimestamp()
+  });
 }
 
 function queueAutosave() {
@@ -107,10 +195,17 @@ function queueAutosave() {
   pipelineProgressInput,
   hoursAtHomeInput,
   contractorsInput,
-  teamNotesInput
+  teamNotesInput,
+  floorWidthFt,
+  floorLengthFt,
+  floorSqft
 ].forEach((field) => {
   field.addEventListener("input", queueAutosave);
   field.addEventListener("change", queueAutosave);
+});
+
+clientAddressInput.addEventListener("change", () => {
+  floorLookupAddress.value = clientAddressInput.value.trim();
 });
 
 function markerEl(itemId, item) {
@@ -203,6 +298,17 @@ floorUploadForm.addEventListener("submit", async (event) => {
   floorImage.value = "";
 });
 
+floorLookupForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  setFloorSourceNote("Looking up latest floor plan records...");
+  try {
+    await runFloorPlanLookup();
+    setFloorSourceNote("Floor plan imported from property data source.");
+  } catch (err) {
+    setFloorSourceNote(err.message || "Unable to import floor plan from address.");
+  }
+});
+
 itemForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const label = document.getElementById("itemLabel").value.trim();
@@ -283,11 +389,23 @@ observeAuth(async (user) => {
     clientEmailInput.value = currentProject.clientEmail || "";
     clientPhoneInput.value = currentProject.clientPhone || "";
     clientAddressInput.value = currentProject.clientAddress || "";
+    floorLookupAddress.value = currentProject.clientAddress || "";
     pipelineStageInput.value = currentProject.pipelineStage || "potential";
     pipelineProgressInput.value = Number(currentProject.pipelineProgress || 0);
     hoursAtHomeInput.value = Number(currentProject.hoursAtHome || 0);
     contractorsInput.value = (currentProject.contractors || []).join("\n");
     teamNotesInput.value = currentProject.teamNotes || "";
+    const dimensions = currentProject.floorPlanDimensions || {};
+    floorWidthFt.value = Number(dimensions.widthFt || 0) || "";
+    floorLengthFt.value = Number(dimensions.lengthFt || 0) || "";
+    floorSqft.value = Number(dimensions.sqft || 0) || "";
+    if (currentProject.floorPlanSource && currentProject.floorPlanSource.name) {
+      const source = currentProject.floorPlanSource.name;
+      const sourceUrl = currentProject.floorPlanSource.url || "";
+      setFloorSourceNote(sourceUrl ? `Source: ${source} (${sourceUrl})` : `Source: ${source}`);
+    } else {
+      setFloorSourceNote("");
+    }
     snapshotTitle.textContent = `Client Snapshot — ${currentProject.clientName || currentProject.title || projectId}`;
     suppressAutosave = false;
   });
