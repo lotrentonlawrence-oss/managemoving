@@ -75,7 +75,13 @@ createAccountBtn.addEventListener("click", async () => {
     routeByRole(ctx.role);
   } catch (err) {
     if (err && err.code === "auth/email-already-in-use") {
-      note.textContent = "Account already exists. Use \"Forgot password?\" to set a new password by email.";
+      try {
+        await resetPasswordForRegisteredAccount(email);
+        form.email.value = email;
+        note.textContent = "Account already exists. A passcode setup email was sent.";
+      } catch (resetErr) {
+        note.textContent = resetErr.message || "Account exists, but passcode email could not be sent.";
+      }
       return;
     }
     note.textContent = err.message || "Unable to set up account.";
