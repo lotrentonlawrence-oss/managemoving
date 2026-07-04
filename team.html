@@ -40,6 +40,17 @@
     </section>
 
     <section class="panel">
+      <h2>Client Account Setup</h2>
+      <p class="muted">Create a client login and assign it to the selected project.</p>
+      <form id="clientAccessForm" class="split-client">
+        <input id="clientEmailInput" type="email" placeholder="Client email address" required>
+        <input id="clientPasscodeInput" type="password" minlength="6" placeholder="Temporary passcode (min 6)" required>
+        <button type="submit">Create Client Account</button>
+      </form>
+      <p class="muted">After account creation, the client can use “Forgot password?” on the login page to set a new password by email.</p>
+    </section>
+
+    <section class="panel">
       <h2>Interactive Floor Plan</h2>
       <p class="muted">Upload a floor plan image, then add or drag item markers.</p>
       <div class="split-two">
