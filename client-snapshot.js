@@ -61,6 +61,7 @@ let placesPredictionService = null;
 let addressGuardObserver = null;
 let addressGuardTimer = null;
 const HUNTSVILLE_BIAS = { lat: 34.7304, lng: -86.5861 };
+let suggestionRequestSeq = 0;
 
 logoutBtn.addEventListener("click", async () => {
   await logout();
@@ -149,6 +150,16 @@ function hideSuggestionList(listEl) {
   listEl.classList.remove("visible");
 }
 
+function showSuggestionMessage(listEl, message) {
+  if (!listEl) return;
+  listEl.innerHTML = "";
+  const row = document.createElement("div");
+  row.className = "address-suggestion-item";
+  row.textContent = message;
+  listEl.appendChild(row);
+  listEl.classList.add("visible");
+}
+
 function scoreAddressPrediction(prediction, inputValue) {
   const desc = String(prediction.description || "").toLowerCase();
   const q = String(inputValue || "").trim().toLowerCase();
@@ -169,8 +180,7 @@ function renderSuggestionList(listEl, predictions, primaryInput, mirrorInput) {
   }
 
   predictions.slice(0, 5).forEach((prediction) => {
-    const item = document.createElement("button");
-    item.type = "button";
+    const item = document.createElement("div");
     item.className = "address-suggestion-item";
     item.textContent = prediction.description;
     item.addEventListener("mousedown", (event) => {
@@ -188,10 +198,16 @@ function renderSuggestionList(listEl, predictions, primaryInput, mirrorInput) {
 }
 
 function requestAddressPredictions(value, listEl, primaryInput, mirrorInput) {
-  if (!placesPredictionService || !value || value.trim().length < 3) {
+  if (!value || value.trim().length < 1) {
     hideSuggestionList(listEl);
     return;
   }
+  if (!placesPredictionService) {
+    showSuggestionMessage(listEl, "Address suggestions unavailable.");
+    return;
+  }
+  showSuggestionMessage(listEl, "Searching...");
+  const requestId = ++suggestionRequestSeq;
 
   placesPredictionService.getPlacePredictions({
     input: value.trim(),
@@ -201,9 +217,10 @@ function requestAddressPredictions(value, listEl, primaryInput, mirrorInput) {
     location: HUNTSVILLE_BIAS,
     radius: 120000
   }, (predictions, status) => {
+    if (requestId !== suggestionRequestSeq) return;
     const okStatus = window.google.maps.places.PlacesServiceStatus.OK;
     if (status !== okStatus || !predictions) {
-      hideSuggestionList(listEl);
+      showSuggestionMessage(listEl, "No address suggestions found.");
       return;
     }
     const ranked = [...predictions]
@@ -237,12 +254,12 @@ function bindAddressSuggestionInput(primaryInput, mirrorInput, listEl) {
   });
 
   primaryInput.addEventListener("blur", () => {
-    window.setTimeout(() => hideSuggestionList(listEl), 180);
+    window.setTimeout(() => hideSuggestionList(listEl), 220);
   });
 
   primaryInput.addEventListener("focus", () => {
     enforceAddressInputsEditable();
-    if (primaryInput.value.trim().length >= 3) {
+    if (primaryInput.value.trim().length >= 1) {
       requestAddressPredictions(primaryInput.value, listEl, primaryInput, mirrorInput);
     }
   });
