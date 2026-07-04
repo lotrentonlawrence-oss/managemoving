@@ -189,7 +189,7 @@ img{max-width:100%;display:block;}
 .price-card .price{font-family:'Fraunces',serif;font-size:1.6rem;color:var(--teal-dark);font-weight:700;margin-bottom:10px;}
 .price-card .price span{font-size:.9rem;color:var(--muted);font-family:'Inter',sans-serif;font-weight:500;}
 .price-desc{font-size:.85rem;margin:0;}
-.price-card.featured{background:var(--navy);color:#fff;transform:translateY(-10px);}
+.price-card.featured{background:var(--navy);color:#fff;}
 .price-card.featured h3,.price-card.featured .price{color:#fff;}
 .price-card.featured .price-desc{color:#cfdbe4;}
 .price-badge{
