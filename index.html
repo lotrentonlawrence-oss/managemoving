@@ -3,24 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sweet Home Transitions | Senior Move Concierge in Huntsville, AL</title>
-<meta name="description" content="Sweet Home Transitions — Moving with Care, Settling with Comfort. A gentle, dignified moving concierge service for Huntsville, AL seniors and their families. Sorting, downsizing, estate liquidation, white-glove move management, and clean-out — all handled with empathy and transparency.">
+<title>Sweet Home Transitions | Senior Move Management in Huntsville, AL</title>
+<meta name="description" content="Sweet Home Transitions provides senior move management, downsizing, estate liquidation, and white-glove move coordination in Huntsville, Madison, Athens, and the Tennessee Valley.">
+<meta name="keywords" content="senior move management Huntsville, downsizing services Huntsville AL, estate liquidation Huntsville, move concierge Alabama, white-glove move management, relocation help for seniors">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="Sweet Home Transitions">
 <meta name="theme-color" content="#1e3550">
+<meta name="geo.region" content="US-AL">
+<meta name="geo.placename" content="Huntsville">
+<meta name="geo.position" content="34.7304;-86.5861">
+<meta name="ICBM" content="34.7304, -86.5861">
 <link rel="canonical" href="https://sweethometransitions.com/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="Sweet Home Transitions">
-<meta property="og:title" content="Sweet Home Transitions | Senior Move Concierge in Huntsville, AL">
+<meta property="og:title" content="Sweet Home Transitions | Senior Move Management in Huntsville, AL">
 <meta property="og:description" content="Compassionate senior move management in Huntsville, Madison, Athens, and the Tennessee Valley. Downsizing, liquidation, move coordination, and settle-in support.">
 <meta property="og:url" content="https://sweethometransitions.com/">
 <meta property="og:image" content="https://sweethometransitions.com/assets/logo.png">
 <meta property="og:image:alt" content="Sweet Home Transitions logo">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="1200">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Sweet Home Transitions | Senior Move Concierge in Huntsville, AL">
+<meta name="twitter:title" content="Sweet Home Transitions | Senior Move Management in Huntsville, AL">
 <meta name="twitter:description" content="Moving with Care, Settling with Comfort. Senior move concierge and downsizing support for Huntsville-area families.">
 <meta name="twitter:image" content="https://sweethometransitions.com/assets/logo.png">
+<meta name="twitter:image:alt" content="Sweet Home Transitions logo">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,20 +39,47 @@
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": "LocalBusiness",
+      "@type": "ProfessionalService",
       "@id": "https://sweethometransitions.com/#business",
       "name": "Sweet Home Transitions",
       "url": "https://sweethometransitions.com/",
       "telephone": "+1-256-924-6427",
       "description": "Senior move management and downsizing concierge helping families with planning, sorting, liquidation, move day coordination, unpacking, and home clear-out.",
       "slogan": "Moving with Care, Settling with Comfort",
-      "areaServed": [
-        "Huntsville, AL",
-        "Madison, AL",
-        "Athens, AL",
-        "Tennessee Valley, AL"
+      "priceRange": "$150-$8000+",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Huntsville",
+        "addressRegion": "AL",
+        "addressCountry": "US"
+      },
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "contactType": "customer service",
+          "telephone": "+1-256-924-6427",
+          "areaServed": "US-AL",
+          "availableLanguage": "en"
+        }
       ],
-      "image": "https://sweethometransitions.com/assets/logo.png"
+      "areaServed": [
+        { "@type": "City", "name": "Huntsville, AL" },
+        { "@type": "City", "name": "Madison, AL" },
+        { "@type": "City", "name": "Athens, AL" },
+        { "@type": "AdministrativeArea", "name": "Tennessee Valley, AL" }
+      ],
+      "image": "https://sweethometransitions.com/assets/logo.png",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Senior Move Management Services",
+        "itemListElement": [
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Consultation and Spatial Planning" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Sorting and De-cluttering" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Estate Liquidation and Resale" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "White-Glove Move Management" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Clear-Out and Deep Clean" } }
+        ]
+      }
     },
     {
       "@type": "WebSite",
@@ -89,8 +125,38 @@
             "@type": "Answer",
             "text": "The commission covers valuation research, item preparation, listing, buyer communication, pickup coordination, and sale management to maximize return."
           }
+        },
+        {
+          "@type": "Question",
+          "name": "Do you provide the movers, or do we need to hire our own?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We coordinate and supervise trusted, vetted third-party moving crews as part of White-Glove Move Management, so you have one point of contact for everything."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How far in advance should we book?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We recommend 3-6 weeks' notice for a full project package, though we can accommodate tighter timelines when needed."
+          }
         }
       ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://sweethometransitions.com/#webpage",
+      "url": "https://sweethometransitions.com/",
+      "name": "Sweet Home Transitions | Senior Move Management in Huntsville, AL",
+      "description": "Compassionate senior move management and downsizing concierge for Huntsville-area families.",
+      "isPartOf": {
+        "@id": "https://sweethometransitions.com/#website"
+      },
+      "about": {
+        "@id": "https://sweethometransitions.com/#business"
+      },
+      "primaryImageOfPage": "https://sweethometransitions.com/assets/logo.png"
     }
   ]
 }
@@ -112,6 +178,7 @@
       <a href="#services">Services</a>
       <a href="#process">Our Process</a>
       <a href="#pricing">Pricing</a>
+      <a href="#service-areas">Service Areas</a>
       <a href="#about">Why Us</a>
       <a href="#faq">FAQ</a>
       <a href="login.html">Portal Login</a>
@@ -130,7 +197,7 @@
       <p class="eyebrow">Senior Move Management &amp; Downsizing Concierge — Huntsville, AL</p>
       <h1>Life's next chapter, moved with <span class="highlight">dignity</span>, not disruption.</h1>
       <p class="slogan">Moving with Care, Settling with Comfort</p>
-      <p class="hero-sub">We're not just movers. We're project managers, liquidation specialists, and a calm, caring presence for families navigating downsizing, estate transitions, and relocation — so parents feel respected and adult children feel at peace.</p>
+      <p class="hero-sub">We're not just movers. We're project managers, liquidation specialists, and a calm, caring presence for families navigating downsizing, estate transitions, and relocation — so every family member feels supported and at peace.</p>
       <div class="hero-actions">
         <a href="#contact" class="btn btn-primary">Schedule Your Free Consult</a>
         <a href="#process" class="btn btn-ghost">See How It Works</a>
@@ -166,8 +233,8 @@
         <p>A gentle, unhurried, and dignified transition that honors a lifetime of memories while minimizing physical strain, confusion, and loss of control. You stay the decision-maker — we simply carry the load.</p>
       </div>
       <div class="value-col">
-        <h2>For Adult Children</h2>
-        <p>Peace of mind, hours of your life back, and an end to family friction over who gets what, what to sell, and what to do with "all of Mom's stuff." We handle the hard conversations and the heavy lifting.</p>
+        <h2>For Families</h2>
+        <p>Peace of mind, time back, and less stress around decisions about what to keep, sell, donate, or pass down. We help families stay aligned with clear, caring guidance.</p>
       </div>
     </div>
     <div class="pillars">
@@ -300,6 +367,25 @@
   </div>
 </section>
 
+<!-- Service areas -->
+<section class="section value-props" id="service-areas">
+  <div class="container">
+    <p class="eyebrow center">Service Area</p>
+    <h2 class="section-title center">Senior Move Management Across North Alabama</h2>
+    <div class="value-grid">
+      <div class="value-col">
+        <h3>Huntsville, AL</h3>
+        <p>Full concierge support for downsizing, move planning, packing, liquidation, and settle-in services for Huntsville families.</p>
+      </div>
+      <div class="value-col">
+        <h3>Madison &amp; Athens, AL</h3>
+        <p>Trusted transition coordination for nearby communities, including move-day oversight, unpacking, and complete clear-out support.</p>
+      </div>
+    </div>
+    <p class="section-sub center">Serving clients throughout the Tennessee Valley with local, family-first move support.</p>
+  </div>
+</section>
+
 <!-- About / Why Us -->
 <section class="section about" id="about">
   <div class="container about-single">
@@ -415,6 +501,7 @@
       <a href="#services">Services</a>
       <a href="#process">Our Process</a>
       <a href="#pricing">Pricing</a>
+      <a href="#service-areas">Service Areas</a>
       <a href="#faq">FAQ</a>
       <a href="login.html">Portal Login</a>
     </div>
