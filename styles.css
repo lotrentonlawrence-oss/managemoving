@@ -255,8 +255,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   background:#fff;
 }
 .site-footer .footer-brand .brand-logo{
-  width:auto;
-  height:62px;
+  width:56px;
+  height:56px;
+  object-fit:contain;
 }
 .site-footer .brand-text{color:#fff;font-weight:700;margin-left:0;}
 .footer-tagline{color:var(--gold);font-style:italic;font-family:'Fraunces',serif;font-size:.95rem;margin:10px 0 8px;}
