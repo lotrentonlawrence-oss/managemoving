@@ -48,7 +48,7 @@ img{max-width:100%;display:block;}
   border-bottom:1px solid rgba(31,58,82,0.08);
 }
 .nav-wrap{display:flex;align-items:center;justify-content:space-between;padding:4px 24px;}
-.brand{display:grid;grid-template-rows:auto 1fr;justify-items:center;align-items:start;height:148px;font-weight:700;font-size:1.05rem;color:var(--navy);}
+.brand{display:grid;grid-template-rows:auto 1fr;justify-items:center;align-items:start;height:152px;font-weight:700;font-size:1.05rem;color:var(--navy);}
 .brand-mark{
   background:var(--teal);color:#fff;font-family:'Fraunces',serif;
   width:38px;height:38px;border-radius:50%;
@@ -63,6 +63,7 @@ img{max-width:100%;display:block;}
 .site-header .brand-logo{
   width:auto;
   height:126px;
+  transform:translateY(8px);
 }
 .site-footer .brand-logo{
   width:auto;
@@ -118,8 +119,10 @@ img{max-width:100%;display:block;}
   white-space:nowrap;
   width:max-content;
   max-width:none;
-  margin:-4px auto 0;
+  margin:-16px auto 0;
   align-self:start;
+  position:relative;
+  z-index:2;
   text-align:center;
 }
 .hero-sub{font-size:1.05rem;max-width:52ch;}
@@ -281,7 +284,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   .hero-grid,.value-grid,.contact-grid{grid-template-columns:1fr;}
   .pillars,.service-grid,.pricing-grid,.footer-grid{grid-template-columns:repeat(2,1fr);}
   .nav-wrap{justify-content:center;position:relative;padding:2px 16px;}
-  .site-header .brand{margin:0 auto;height:112px;}
+  .site-header .brand{margin:0 auto;height:120px;}
   .nav{
     position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;
     align-items:center;padding:20px 24px;gap:16px;display:none;border-bottom:1px solid rgba(31,58,82,0.08);
@@ -291,6 +294,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   .nav.open{display:flex;}
   .nav-toggle{display:flex;position:absolute;right:24px;top:50%;transform:translateY(-50%);}
   .site-header .brand-logo{height:94px;}
+  .site-header .slogan{margin:-12px auto 0;}
   .footer-grid > div:first-child{text-align:center;}
   .footer-brand{justify-content:center;}
   .price-card.featured{transform:none;}
