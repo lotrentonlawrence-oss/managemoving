@@ -245,6 +245,19 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
 .footer-grid a{display:block;color:#cfdbe4;margin-bottom:8px;}
 .footer-grid a:hover{color:var(--gold);}
 .footer-brand{display:flex;align-items:center;gap:10px;}
+.site-footer .footer-brand{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:92px;
+  height:92px;
+  border-radius:50%;
+  background:#fff;
+}
+.site-footer .footer-brand .brand-logo{
+  width:auto;
+  height:62px;
+}
 .site-footer .brand-text{color:#fff;font-weight:700;margin-left:0;}
 .footer-tagline{color:var(--gold);font-style:italic;font-family:'Fraunces',serif;font-size:.95rem;margin:10px 0 8px;}
 .footer-bottom{border-top:1px solid rgba(255,255,255,0.1);margin-top:30px;padding-top:18px;text-align:center;font-size:.8rem;}
