@@ -47,7 +47,7 @@ img{max-width:100%;display:block;}
   position:sticky;top:0;z-index:50;
   border-bottom:1px solid rgba(31,58,82,0.08);
 }
-.nav-wrap{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;}
+.nav-wrap{display:flex;align-items:center;justify-content:space-between;padding:4px 24px;}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;color:var(--navy);}
 .brand-mark{
   background:var(--teal);color:#fff;font-family:'Fraunces',serif;
@@ -62,7 +62,7 @@ img{max-width:100%;display:block;}
 }
 .site-header .brand-logo{
   width:auto;
-  height:108px;
+  height:126px;
 }
 .site-footer .brand-logo{
   width:auto;
@@ -271,7 +271,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
 @media (max-width:900px){
   .hero-grid,.value-grid,.contact-grid{grid-template-columns:1fr;}
   .pillars,.service-grid,.pricing-grid,.footer-grid{grid-template-columns:repeat(2,1fr);}
-  .nav-wrap{justify-content:center;position:relative;}
+  .nav-wrap{justify-content:center;position:relative;padding:2px 16px;}
   .site-header .brand{margin:0 auto;}
   .nav{
     position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;
@@ -279,7 +279,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   }
   .nav.open{display:flex;}
   .nav-toggle{display:flex;position:absolute;right:24px;top:50%;transform:translateY(-50%);}
-  .site-header .brand-logo{height:68px;}
+  .site-header .brand-logo{height:94px;}
   .footer-grid > div:first-child{text-align:center;}
   .footer-brand{justify-content:center;}
   .price-card.featured{transform:none;}
