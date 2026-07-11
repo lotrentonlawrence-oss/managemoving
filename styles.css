@@ -253,10 +253,11 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   height:92px;
   border-radius:50%;
   background:#fff;
+  overflow:hidden;
 }
 .site-footer .footer-brand .brand-logo{
-  width:88px;
-  height:88px;
+  width:126px;
+  height:126px;
   object-fit:contain;
 }
 .site-footer .brand-text{color:#fff;font-weight:700;margin-left:0;}
