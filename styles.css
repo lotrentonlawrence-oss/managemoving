@@ -254,12 +254,13 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   border-radius:50%;
   background:#fff;
   overflow:hidden;
+  box-shadow:0 0 0 3px rgba(169,194,165,0.45), 0 10px 22px rgba(0,0,0,0.18);
 }
 .site-footer .footer-brand .brand-logo{
-  width:440px;
-  height:440px;
+  width:102px;
+  height:102px;
   object-fit:contain;
-  object-position:48% 50%;
+  object-position:center;
 }
 .site-footer .brand-text{color:#fff;font-weight:700;margin-left:0;}
 .footer-tagline{color:var(--gold);font-style:italic;font-family:'Fraunces',serif;font-size:.95rem;margin:10px 0 8px;}
