@@ -118,8 +118,8 @@ img{max-width:100%;display:block;}
   white-space:nowrap;
   width:max-content;
   max-width:none;
-  margin:0 auto;
-  align-self:center;
+  margin:4px auto 0;
+  align-self:start;
   text-align:center;
 }
 .hero-sub{font-size:1.05rem;max-width:52ch;}
