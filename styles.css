@@ -284,8 +284,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   .site-header .brand{margin:0 auto;height:112px;}
   .nav{
     position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;
-    align-items:flex-start;padding:20px 24px;gap:16px;display:none;border-bottom:1px solid rgba(31,58,82,0.08);
+    align-items:center;padding:20px 24px;gap:16px;display:none;border-bottom:1px solid rgba(31,58,82,0.08);
+    text-align:center;
   }
+  .nav a{width:100%;text-align:center;}
   .nav.open{display:flex;}
   .nav-toggle{display:flex;position:absolute;right:24px;top:50%;transform:translateY(-50%);}
   .site-header .brand-logo{height:94px;}
