@@ -118,7 +118,7 @@ img{max-width:100%;display:block;}
   white-space:nowrap;
   width:max-content;
   max-width:none;
-  margin:4px auto 0;
+  margin:-4px auto 0;
   align-self:start;
   text-align:center;
 }
