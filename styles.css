@@ -115,6 +115,11 @@ img{max-width:100%;display:block;}
 }
 .site-header .slogan{
   line-height:1;
+  white-space:nowrap;
+  width:max-content;
+  max-width:none;
+  margin:0 auto;
+  text-align:center;
 }
 .hero-sub{font-size:1.05rem;max-width:52ch;}
 .hero-actions{display:flex;gap:16px;flex-wrap:wrap;margin:22px 0;}
