@@ -110,7 +110,7 @@ img{max-width:100%;display:block;}
 .hero h1{font-size:clamp(2.1rem,4vw,3.1rem);margin-bottom:.4em;}
 .highlight{color:var(--teal);}
 .slogan{
-  font-family:'Fraunces',serif;font-style:italic;font-size:1.15rem;color:var(--gold);
+  font-family:'Blitz Brush BC','Brush Script MT','Segoe Script',cursive;font-style:normal;font-size:1.28rem;color:var(--gold);
   font-weight:600;margin-bottom:.6em;
 }
 .hero-sub{font-size:1.05rem;max-width:52ch;}
@@ -264,7 +264,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
   object-position:50% 50%;
 }
 .site-footer .brand-text{color:#fff;font-weight:700;margin-left:0;}
-.footer-tagline{color:var(--gold);font-style:italic;font-family:'Fraunces',serif;font-size:.95rem;margin:10px 0 8px;}
+.footer-tagline{color:var(--gold);font-style:normal;font-family:'Blitz Brush BC','Brush Script MT','Segoe Script',cursive;font-size:1.18rem;margin:10px 0 8px;}
 .footer-bottom{border-top:1px solid rgba(255,255,255,0.1);margin-top:30px;padding-top:18px;text-align:center;font-size:.8rem;}
 
 /* Responsive */
