@@ -23,7 +23,9 @@ Valley, AL.
 - `firebase.json` / `.firebaserc` — Firebase project/deploy configuration
 - `firestore.indexes.json` — Firestore index config
 - `functions/` — Firebase Cloud Functions (`floorPlanLookup`, `inquiryIntake`)
-- `assets/logo.png` — primary brand logo used in header and footer
+- `assets/logo-full.png` — primary full logo used in header/footer and social previews
+- `assets/logo-icon.png` — icon logo used for favicon/tab icon
+- `assets/logo.png` — legacy logo asset retained for compatibility
 - `apps-script/Code.gs` — Google Apps Script that emails contact-form
   submissions from `hello@sweethometransitions.com` to
   `trenton@sweethometransitions.com`

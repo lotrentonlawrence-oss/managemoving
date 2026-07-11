@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Client Snapshot | Sweet Home Transitions</title>
   <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="assets/logo-icon.png?v=20260711a">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="portal.css?v=20260704k">
+  <link rel="stylesheet" href="portal.css?v=20260704n">
 </head>
 <body>
   <header class="portal-header">
@@ -74,6 +75,12 @@
     <section class="panel">
       <h2>Interactive Floor Plan</h2>
       <p class="muted">Lookup by address, auto-import floor plan, then place draggable item markers.</p>
+      <div class="quick-guide">
+        <span>1. Select level</span>
+        <span>2. Draw room boxes</span>
+        <span>3. Enter room dimensions</span>
+        <span>4. Drag icons onto map</span>
+      </div>
       <form id="floorLookupForm" class="split-two floor-lookup">
         <div class="stack-form address-field">
           <label for="floorLookupAddress">Property Address</label>
@@ -112,6 +119,7 @@
         <button id="drawFloorShapeBtn" type="button" class="btn-ghost">Draw Floor Plan Shape</button>
         <button id="clearFloorShapeBtn" type="button" class="btn-ghost">Clear Current Level Rooms</button>
       </div>
+      <div id="mapStatusBar" class="map-status-bar"></div>
       <div class="floor-workflow-row">
         <div class="stack-form">
           <label for="floorLevelsCount">Levels in Home</label>
@@ -143,53 +151,58 @@
           <input id="floorShapeScaleNote" type="text" value="Room dimensions auto-adjust overall floor dimensions" disabled>
         </div>
       </div>
+      <p class="muted">Tip: Double-click any room box on the map to edit room dimensions quickly.</p>
       <div id="floorRoomsList" class="rooms-list"></div>
-      <div class="panel icon-key-panel">
-        <h3>Icon Key (Drag to map)</h3>
-        <div id="iconPalette" class="icon-palette">
-          <button type="button" class="icon-palette-item" draggable="true" data-icon="tv">📺 TV</button>
-          <button type="button" class="icon-palette-item" draggable="true" data-icon="sofa">🛋️ Couch</button>
-          <button type="button" class="icon-palette-item" draggable="true" data-icon="dresser">🗄️ Dresser</button>
-          <button type="button" class="icon-palette-item" draggable="true" data-icon="bed">🛏️ Bed</button>
-          <button type="button" class="icon-palette-item" draggable="true" data-icon="table">🪑 Table</button>
-          <button type="button" class="icon-palette-item" draggable="true" data-icon="chair">🪑 Chair</button>
-          <button type="button" class="icon-palette-item" draggable="true" data-icon="lamp">💡 Lamp</button>
-        </div>
-      </div>
       <p id="floorSourceNote" class="muted"></p>
       <p id="floorImportStatus" class="muted"></p>
-      <div class="split-two">
-        <form id="floorUploadForm" class="stack-form">
-          <label for="floorImage">Floor Plan Image</label>
-          <input id="floorImage" type="file" accept="image/*">
-          <button type="submit">Upload</button>
-        </form>
-        <form id="itemForm" class="stack-form">
-          <label for="itemIconType">Icon Type</label>
-          <select id="itemIconType">
-            <option value="sofa">Couch</option>
-            <option value="tv">TV</option>
-            <option value="dresser">Dresser</option>
-            <option value="bed">Bed</option>
-            <option value="table">Table</option>
-            <option value="chair">Chair</option>
-            <option value="lamp">Lamp</option>
-          </select>
-          <label for="itemLabel">Item Label</label>
-          <input id="itemLabel" type="text" placeholder="Sofa, Lamp, Dining Table">
-          <label for="itemWidthFt">Item Width (ft)</label>
-          <input id="itemWidthFt" type="number" step="0.1" min="0" placeholder="Ex: 7">
-          <label for="itemDepthFt">Item Depth (ft)</label>
-          <input id="itemDepthFt" type="number" step="0.1" min="0" placeholder="Ex: 3">
-          <label for="itemRoom">Room</label>
-          <input id="itemRoom" type="text" placeholder="Living Room">
-          <label for="itemNotes">Notes</label>
-          <input id="itemNotes" type="text" placeholder="Against north wall">
-          <button type="submit">Add Item (click map to place)</button>
-        </form>
+      <div class="map-workspace">
+        <div class="map-canvas-wrap">
+          <div id="teamFloorCanvas" class="floor-canvas"></div>
+          <p id="itemHint" class="muted map-hint">Tip: click anywhere on the map before adding an item to set its position.</p>
+        </div>
+        <aside class="map-sidebar">
+          <div class="panel icon-key-panel">
+            <h3>Icon Key (Drag to map)</h3>
+            <div id="iconPalette" class="icon-palette">
+              <button type="button" class="icon-palette-item" draggable="true" data-icon="tv">📺 TV</button>
+              <button type="button" class="icon-palette-item" draggable="true" data-icon="sofa">🛋️ Couch</button>
+              <button type="button" class="icon-palette-item" draggable="true" data-icon="dresser">🗄️ Dresser</button>
+              <button type="button" class="icon-palette-item" draggable="true" data-icon="bed">🛏️ Bed</button>
+              <button type="button" class="icon-palette-item" draggable="true" data-icon="table">🪑 Table</button>
+              <button type="button" class="icon-palette-item" draggable="true" data-icon="chair">🪑 Chair</button>
+              <button type="button" class="icon-palette-item" draggable="true" data-icon="lamp">💡 Lamp</button>
+            </div>
+          </div>
+          <form id="itemForm" class="stack-form map-item-form">
+            <label for="itemIconType">Icon Type</label>
+            <select id="itemIconType">
+              <option value="sofa">Couch</option>
+              <option value="tv">TV</option>
+              <option value="dresser">Dresser</option>
+              <option value="bed">Bed</option>
+              <option value="table">Table</option>
+              <option value="chair">Chair</option>
+              <option value="lamp">Lamp</option>
+            </select>
+            <label for="itemLabel">Item Label</label>
+            <input id="itemLabel" type="text" placeholder="Sofa, Lamp, Dining Table">
+            <label for="itemWidthFt">Item Width (ft)</label>
+            <input id="itemWidthFt" type="number" step="0.1" min="0" placeholder="Ex: 7">
+            <label for="itemDepthFt">Item Depth (ft)</label>
+            <input id="itemDepthFt" type="number" step="0.1" min="0" placeholder="Ex: 3">
+            <label for="itemRoom">Room</label>
+            <input id="itemRoom" type="text" placeholder="Living Room">
+            <label for="itemNotes">Notes</label>
+            <input id="itemNotes" type="text" placeholder="Against north wall">
+            <button type="submit">Add Item (click map to place)</button>
+          </form>
+          <form id="floorUploadForm" class="stack-form map-upload-form">
+            <label for="floorImage">Floor Plan Image</label>
+            <input id="floorImage" type="file" accept="image/*">
+            <button type="submit">Upload</button>
+          </form>
+        </aside>
       </div>
-      <div id="teamFloorCanvas" class="floor-canvas"></div>
-      <p id="itemHint" class="muted">Tip: click anywhere on the map before adding an item to set its position.</p>
     </section>
 
     <section class="panel">
@@ -220,6 +233,6 @@
     </section>
   </main>
 
-  <script type="module" src="client-snapshot.js?v=20260704k"></script>
+  <script type="module" src="client-snapshot.js?v=20260704n"></script>
 </body>
 </html>
