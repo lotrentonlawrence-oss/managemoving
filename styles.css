@@ -253,13 +253,17 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
 @media (max-width:900px){
   .hero-grid,.value-grid,.contact-grid{grid-template-columns:1fr;}
   .pillars,.service-grid,.pricing-grid,.footer-grid{grid-template-columns:repeat(2,1fr);}
+  .nav-wrap{justify-content:center;position:relative;}
+  .site-header .brand{margin:0 auto;}
   .nav{
     position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;
     align-items:flex-start;padding:20px 24px;gap:16px;display:none;border-bottom:1px solid rgba(31,58,82,0.08);
   }
   .nav.open{display:flex;}
-  .nav-toggle{display:flex;}
-  .site-header .brand-logo{height:56px;}
+  .nav-toggle{display:flex;position:absolute;right:24px;top:50%;transform:translateY(-50%);}
+  .site-header .brand-logo{height:68px;}
+  .footer-grid > div:first-child{text-align:center;}
+  .footer-brand{justify-content:center;}
   .price-card.featured{transform:none;}
 }
 @media (max-width:600px){
