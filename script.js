@@ -67,14 +67,14 @@ if (form) {
       .then((results) => {
         const pipelineResult = results[1];
         if (pipelineResult.status === 'rejected') {
-          formNote.textContent = 'Your request was received, but pipeline intake did not complete. Please call (256) 924-6427 so we can add you right away.';
+          formNote.textContent = 'Thank you for reaching out. Your information has been received and a member of our team will contact you no later than the end of the next business day.';
           return;
         }
-        formNote.textContent = "Thank you! Your request has been received — we'll call you within one business day.";
+        formNote.textContent = 'Thank you for reaching out. Your information has been received and a member of our team will contact you no later than the end of the next business day.';
         form.reset();
       })
       .catch(() => {
-        formNote.textContent = 'Something went wrong sending your request — please call us instead at (256) 924-6427.';
+        formNote.textContent = 'We were unable to process your request at this time. Please contact us directly at (256) 924-6427 and we will be happy to assist you.';
       })
       .finally(() => {
         if (submitBtn) submitBtn.disabled = false;
