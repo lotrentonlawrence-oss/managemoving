@@ -80,10 +80,10 @@ if (form) {
       .then((results) => {
         const pipelineResult = results[1];
         if (pipelineResult.status === 'rejected') {
-          formNote.textContent = 'Thank you for reaching out. Your information has been received and a member of our team will contact you no later than the end of the next business day.';
+          formNote.textContent = 'Thank you for reaching out. Your information has been received. Expect a call from us at (256) 924-6427 within the next 24 hours.';
           return;
         }
-        formNote.textContent = 'Thank you for reaching out. Your information has been received and a member of our team will contact you no later than the end of the next business day.';
+        formNote.textContent = 'Thank you for reaching out. Your information has been received. Expect a call from us at (256) 924-6427 within the next 24 hours.';
         form.reset();
       })
       .catch(() => {
