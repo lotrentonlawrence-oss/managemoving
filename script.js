@@ -14,6 +14,19 @@ if (navToggle && siteNav) {
   });
 }
 
+// Phone number auto-formatter → (xxx) xxx-xxxx
+const phoneInput = document.getElementById('phone');
+if (phoneInput) {
+  phoneInput.addEventListener('input', (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+    let formatted = '';
+    if (digits.length > 0) formatted = '(' + digits.slice(0, 3);
+    if (digits.length >= 4) formatted += ') ' + digits.slice(3, 6);
+    if (digits.length >= 7) formatted += '-' + digits.slice(6, 10);
+    e.target.value = formatted;
+  });
+}
+
 // Footer year
 const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
