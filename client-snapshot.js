@@ -65,9 +65,20 @@ const auctionTitle = document.getElementById("auctionTitle");
 const auctionStatus = document.getElementById("auctionStatus");
 const auctionAmount = document.getElementById("auctionAmount");
 const teamAuctionBody = document.getElementById("teamAuctionBody");
+const timeEntryForm = document.getElementById("timeEntryForm");
+const timeEntryDate = document.getElementById("timeEntryDate");
+const timeEntryTimeIn = document.getElementById("timeEntryTimeIn");
+const timeEntryTimeOut = document.getElementById("timeEntryTimeOut");
+const timeEntriesBody = document.getElementById("timeEntriesBody");
+const timeEntriesTotalNote = document.getElementById("timeEntriesTotalNote");
 
 const params = new URLSearchParams(window.location.search);
 const projectId = params.get("projectId");
+
+const previewClientBtn = document.getElementById("previewClientBtn");
+if (projectId && previewClientBtn) {
+  previewClientBtn.href = `./client.html?projectId=${encodeURIComponent(projectId)}&preview=1`;
+}
 
 let currentProject = {};
 let pendingPosition = { x: 50, y: 50 };
@@ -423,7 +434,6 @@ async function saveSnapshotChanges() {
     clientAddress: clientAddressInput.value.trim(),
     pipelineStage: pipelineStageInput.value,
     pipelineProgress: Number(pipelineProgressInput.value || 0),
-    hoursAtHome: Number(hoursAtHomeInput.value || 0),
     contractors: toContractorArray(contractorsInput.value),
     teamNotes: teamNotesInput.value.trim(),
     floorPlanManualOverride: floorManualOverride.checked,
@@ -529,7 +539,6 @@ function queueAutosave() {
   clientAddressInput,
   pipelineStageInput,
   pipelineProgressInput,
-  hoursAtHomeInput,
   contractorsInput,
   teamNotesInput,
   floorManualOverride,
@@ -1139,6 +1148,85 @@ itemForm.addEventListener("submit", async (event) => {
   itemForm.reset();
 });
 
+function calcEntryHours(timeIn, timeOut) {
+  if (!timeIn || !timeOut) return 0;
+  const [h1, m1] = timeIn.split(":").map(Number);
+  const [h2, m2] = timeOut.split(":").map(Number);
+  const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+  return mins > 0 ? Math.round((mins / 60) * 100) / 100 : 0;
+}
+
+function fmt12(t) {
+  if (!t) return "--";
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+function renderTimeEntries(docs) {
+  timeEntriesBody.innerHTML = "";
+  let total = 0;
+  docs.forEach((d) => {
+    const e = d.data();
+    const hrs = calcEntryHours(e.timeIn, e.timeOut);
+    total += hrs;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${e.date || ""}</td>
+      <td>${fmt12(e.timeIn)}</td>
+      <td>${e.timeOut ? fmt12(e.timeOut) : '<em class="muted">In Progress</em>'}</td>
+      <td>${e.timeOut ? hrs.toFixed(2) : "--"}</td>
+      <td>
+        ${!e.timeOut ? `<input type="time" class="time-out-inline" data-id="${d.id}"> <button class="btn-ghost" data-role="clock-out" data-id="${d.id}">Clock Out</button>` : ""}
+        <button class="btn-ghost" data-role="delete-entry" data-id="${d.id}">Remove</button>
+      </td>
+    `;
+    timeEntriesBody.appendChild(tr);
+  });
+  const rounded = Math.round(total * 100) / 100;
+  hoursAtHomeInput.value = rounded;
+  timeEntriesTotalNote.textContent = `Total: ${rounded} hr${rounded !== 1 ? "s" : ""}`;
+  if (projectId) {
+    updateDoc(doc(db, "projects", projectId), { hoursAtHome: rounded, updatedAt: serverTimestamp() }).catch(() => {});
+  }
+}
+
+// Default time entry date to today
+if (timeEntryDate) {
+  timeEntryDate.value = new Date().toISOString().slice(0, 10);
+}
+
+timeEntryForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const date = timeEntryDate.value;
+  const timeIn = timeEntryTimeIn.value;
+  const timeOut = timeEntryTimeOut.value;
+  if (!date || !timeIn) return;
+  await addDoc(collection(db, "projects", projectId, "timeEntries"), {
+    date,
+    timeIn,
+    timeOut: timeOut || "",
+    createdAt: serverTimestamp()
+  });
+  timeEntryTimeIn.value = "";
+  timeEntryTimeOut.value = "";
+});
+
+timeEntriesBody.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-role]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.role === "delete-entry") {
+    await deleteDoc(doc(db, "projects", projectId, "timeEntries", id));
+  } else if (btn.dataset.role === "clock-out") {
+    const row = btn.closest("tr");
+    const input = row.querySelector(".time-out-inline");
+    const timeOut = input ? input.value : "";
+    if (!timeOut) return;
+    await updateDoc(doc(db, "projects", projectId, "timeEntries", id), { timeOut, updatedAt: serverTimestamp() });
+  }
+});
+
 auctionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const title = auctionTitle.value.trim();
@@ -1258,5 +1346,14 @@ observeAuth(async (user) => {
   onSnapshot(auctionQuery, (snap) => {
     const items = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
     renderAuction(items);
+  });
+
+  const timeEntriesQuery = query(
+    collection(db, "projects", projectId, "timeEntries"),
+    orderBy("date", "asc"),
+    orderBy("timeIn", "asc")
+  );
+  onSnapshot(timeEntriesQuery, (snap) => {
+    renderTimeEntries(snap.docs);
   });
 });

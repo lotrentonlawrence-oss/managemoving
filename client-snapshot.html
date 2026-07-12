@@ -16,6 +16,7 @@
     <h1 id="snapshotTitle">Client Snapshot</h1>
     <div class="header-actions">
       <a href="./team.html" class="btn-ghost">Back to Pipeline</a>
+      <a id="previewClientBtn" href="#" target="_blank" class="btn-ghost">Preview Client View</a>
       <button id="logoutBtn" class="btn-ghost">Log Out</button>
     </div>
   </header>
@@ -57,8 +58,8 @@
           <input id="pipelineProgressInput" type="number" min="0" max="100" step="1">
         </div>
         <div class="stack-form">
-          <label for="hoursAtHomeInput">Hours at Home</label>
-          <input id="hoursAtHomeInput" type="number" min="0" step="0.5">
+          <label for="hoursAtHomeInput">Hours at Home (computed)</label>
+          <input id="hoursAtHomeInput" type="number" min="0" step="0.5" readonly>
         </div>
         <div class="stack-form full-width">
           <label for="contractorsInput">Contractors (one per line)</label>
@@ -70,6 +71,44 @@
         </div>
       </form>
       <p id="snapshotSaveNote" class="form-note"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Time Tracking</h2>
+      <p class="muted">Log each visit. Total hours auto-update Hours at Home.</p>
+      <form id="timeEntryForm" class="time-entry-form">
+        <div class="stack-form">
+          <label for="timeEntryDate">Date</label>
+          <input id="timeEntryDate" type="date" required>
+        </div>
+        <div class="stack-form">
+          <label for="timeEntryTimeIn">Time In</label>
+          <input id="timeEntryTimeIn" type="time" required>
+        </div>
+        <div class="stack-form">
+          <label for="timeEntryTimeOut">Time Out</label>
+          <input id="timeEntryTimeOut" type="time">
+        </div>
+        <div class="stack-form time-entry-action">
+          <label>&nbsp;</label>
+          <button type="submit">Add Entry</button>
+        </div>
+      </form>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Hours</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="timeEntriesBody"></tbody>
+        </table>
+      </div>
+      <p id="timeEntriesTotalNote" class="form-note"></p>
     </section>
 
     <section class="panel">

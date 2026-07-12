@@ -170,6 +170,32 @@ button:hover { background: var(--sage-dark); }
   color: #fff;
 }
 
+.preview-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.time-entry-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.time-out-inline {
+  width: 110px;
+  margin-right: 4px;
+}
+
 .stack-form {
   display: grid;
   gap: 8px;
@@ -586,7 +612,7 @@ a.btn-ghost {
 }
 
 @media (max-width: 900px) {
-  .split-two, .split-three, .split-client, .split-lead, .auction-summary, .pipeline-columns, .snapshot-grid, .room-row {
+  .split-two, .split-three, .split-client, .split-lead, .auction-summary, .pipeline-columns, .snapshot-grid, .room-row, .time-entry-form {
     grid-template-columns: 1fr;
   }
   .portal-header {

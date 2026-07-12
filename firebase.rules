@@ -51,6 +51,11 @@ service cloud.firestore {
         allow read: if isTeam() || isProjectClient(projectId);
         allow write: if isTeam();
       }
+
+      match /timeEntries/{entryId} {
+        allow read: if isTeam() || isProjectClient(projectId);
+        allow write: if isTeam();
+      }
     }
   }
 }
