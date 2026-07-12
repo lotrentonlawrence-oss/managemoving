@@ -1,4 +1,20 @@
 {
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firebase.rules",
+      "storage.rules",
+      "firestore.indexes.json",
+      ".firebaserc",
+      "functions/**",
+      "apps-script/**",
+      "README.md",
+      "DOMAIN_SETUP.md",
+      "EMAIL_SETUP.md",
+      ".git/**"
+    ]
+  },
   "functions": {
     "source": "functions"
   },
