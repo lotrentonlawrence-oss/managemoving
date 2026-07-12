@@ -7,7 +7,12 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+const params = new URLSearchParams(window.location.search);
+const previewProjectId = params.get("projectId");
+const isPreview = params.get("preview") === "1" && !!previewProjectId;
+
 const clientNameEl = document.getElementById("clientName");
+const previewBanner = document.getElementById("previewBanner");
 const logoutBtn = document.getElementById("logoutBtn");
 const contractorsList = document.getElementById("contractorsList");
 const hoursValue = document.getElementById("hoursValue");
@@ -99,15 +104,23 @@ observeAuth(async (user) => {
   }
 
   const ctx = await resolvePortalContext(user);
-  if (ctx.role !== "client" || !ctx.projectId) {
+
+  let resolvedProjectId;
+  if (isPreview && ctx.role === "team") {
+    resolvedProjectId = previewProjectId;
+    clientNameEl.textContent = "Preview Mode";
+    if (previewBanner) previewBanner.hidden = false;
+  } else if (ctx.role === "client" && ctx.projectId) {
+    resolvedProjectId = ctx.projectId;
+    clientNameEl.textContent = user.email || "";
+  } else {
     window.location.href = ctx.role === "team" ? "./team.html" : "./login.html";
     return;
   }
 
-  clientNameEl.textContent = user.email || "";
-  const projectRef = doc(db, "projects", ctx.projectId);
-  const floorQuery = query(collection(db, "projects", ctx.projectId, "floorPlanItems"));
-  const auctionQuery = query(collection(db, "projects", ctx.projectId, "auctionItems"), orderBy("createdAt", "desc"));
+  const projectRef = doc(db, "projects", resolvedProjectId);
+  const floorQuery = query(collection(db, "projects", resolvedProjectId, "floorPlanItems"));
+  const auctionQuery = query(collection(db, "projects", resolvedProjectId, "auctionItems"), orderBy("createdAt", "desc"));
 
   onSnapshot(projectRef, (snap) => {
     if (!snap.exists()) return;

@@ -9,12 +9,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="portal.css?v=20260704m">
+  <link rel="stylesheet" href="portal.css?v=20260712a">
 </head>
 <body>
   <header class="portal-header">
-    <h1>Client Move Dashboard</h1>
+    <div class="header-brand">
+      <img class="portal-logo" src="assets/logo-full-header.png" alt="Sweet Home Transitions">
+      <span class="header-subtitle">Client Portal</span>
+    </div>
     <div class="header-actions">
+      <span id="previewBanner" class="preview-banner" hidden>👁 Preview Mode</span>
       <span id="clientName" class="muted"></span>
       <button id="logoutBtn" class="btn-ghost">Log Out</button>
     </div>
@@ -76,6 +80,6 @@
     </section>
   </main>
 
-  <script type="module" src="client.js?v=20260704m"></script>
+  <script type="module" src="client.js?v=20260712a"></script>
 </body>
 </html>
