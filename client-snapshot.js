@@ -757,7 +757,7 @@ function renderRoomsEditor() {
       <input data-role="name" data-id="${room.id}" type="text" value="${room.name || `Room ${index + 1}`}">
       <input data-role="widthFt" data-id="${room.id}" type="number" step="0.1" min="0" value="${Number(room.widthFt || 0) || ""}" placeholder="Width ft">
       <input data-role="lengthFt" data-id="${room.id}" type="number" step="0.1" min="0" value="${Number(room.lengthFt || 0) || ""}" placeholder="Length ft">
-      <button type="button" class="btn-ghost" data-role="delete" data-id="${room.id}">Delete</button>
+      <button type="button" class="btn-danger btn-sm" data-role="delete" data-id="${room.id}">Remove</button>
     `;
     floorRoomsList.appendChild(row);
   });
@@ -873,7 +873,7 @@ function renderAuction(items = []) {
         </select>
       </td>
       <td><input data-role="amount" data-id="${id}" type="number" min="0" step="0.01" value="${amount}"></td>
-      <td><button class="btn-ghost" data-role="delete" data-id="${id}">Delete</button></td>
+      <td><button class="btn-danger btn-sm" data-role="delete" data-id="${id}">Remove</button></td>
     `;
     teamAuctionBody.appendChild(tr);
   });
@@ -1178,7 +1178,7 @@ function renderTimeEntries(docs) {
       <td>${e.timeOut ? hrs.toFixed(2) : "--"}</td>
       <td>
         ${!e.timeOut ? `<input type="time" class="time-out-inline" data-id="${d.id}"> <button class="btn-ghost" data-role="clock-out" data-id="${d.id}">Clock Out</button>` : ""}
-        <button class="btn-ghost" data-role="delete-entry" data-id="${d.id}">Remove</button>
+        <button class="btn-danger btn-sm" data-role="delete-entry" data-id="${d.id}">Remove</button>
       </td>
     `;
     timeEntriesBody.appendChild(tr);

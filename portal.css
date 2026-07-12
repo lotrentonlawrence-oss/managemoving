@@ -3,11 +3,17 @@
   --navy-dark: #12263b;
   --sage: #7b9b78;
   --sage-dark: #617f5f;
+  --sage-light: #eef6eb;
   --bg: #f3f6f1;
   --card: #ffffff;
   --line: #d6e0d3;
   --ink: #20313f;
   --muted: #5e6f65;
+  --danger: #c0392b;
+  --danger-dark: #962d22;
+  --shadow-sm: 0 1px 4px rgba(18,38,59,0.07), 0 2px 10px rgba(18,38,59,0.05);
+  --shadow-md: 0 2px 8px rgba(18,38,59,0.08), 0 6px 24px rgba(18,38,59,0.08);
+  --radius: 12px;
 }
 
 * { box-sizing: border-box; }
@@ -24,67 +30,139 @@ h1, h2, h3 {
   color: var(--navy);
 }
 
+/* ── Header ─────────────────────────────── */
 .portal-header {
   display: flex;
   justify-content: space-between;
   gap: 20px;
   align-items: center;
-  padding: 16px 24px;
+  padding: 12px 28px;
   background: var(--card);
   border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 10;
+}
+
+.header-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.portal-logo {
+  height: 42px;
+  width: auto;
+  display: block;
+}
+
+.header-subtitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
+/* ── Layout ──────────────────────────────── */
 .portal-main {
   max-width: 1200px;
-  margin: 24px auto;
-  padding: 0 20px;
+  margin: 28px auto;
+  padding: 0 24px;
   display: grid;
-  gap: 20px;
+  gap: 22px;
 }
 
 .panel {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 18px;
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel h2 {
+  font-size: 1.15rem;
+  margin-bottom: 4px;
 }
 
 .muted {
   color: var(--muted);
-  margin: 0 0 10px;
+  margin: 0 0 14px;
+  font-size: 0.9rem;
 }
 
 .form-note {
   color: var(--sage-dark);
   font-weight: 600;
+  margin-top: 8px;
+  font-size: 0.88rem;
 }
 
+/* ── Forms ───────────────────────────────── */
 label {
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   color: var(--navy);
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
-input, select, button {
+input, select {
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px 13px;
   border-radius: 8px;
   border: 1px solid var(--line);
   font-family: inherit;
   font-size: 0.95rem;
+  background: #fff;
+  color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px rgba(123, 155, 120, 0.18);
+}
+
+input[readonly] {
+  background: #f8fbf6;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+button {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  font-family: inherit;
+  font-size: 0.92rem;
+  background: var(--sage);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+button:hover {
+  background: var(--sage-dark);
+  box-shadow: 0 2px 8px rgba(97,127,95,0.25);
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 input.address-input {
-  background-color: #fff !important;
   color: var(--ink) !important;
   opacity: 1 !important;
   pointer-events: auto !important;
@@ -148,39 +226,54 @@ input.address-input:disabled {
   position: relative;
 }
 
-button {
-  background: var(--sage);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-button:hover { background: var(--sage-dark); }
-
+/* ── Button variants ──────────────────────── */
 .btn-ghost {
   width: auto;
-  border: 1px solid var(--navy);
+  border: 1.5px solid var(--navy);
   background: transparent;
   color: var(--navy);
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  box-shadow: none;
 }
 
 .btn-ghost:hover {
   background: var(--navy);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(30,53,80,0.2);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  width: auto;
+  font-size: 0.82rem;
+  padding: 5px 10px;
+}
+
+.btn-danger:hover {
+  background: var(--danger-dark);
+  box-shadow: 0 2px 8px rgba(192,57,43,0.25);
+}
+
+.btn-sm {
+  width: auto;
+  font-size: 0.8rem;
+  padding: 5px 10px;
 }
 
 .preview-banner {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   background: #fff3cd;
   color: #856404;
   border: 1px solid #ffc107;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .time-entry-form {
@@ -273,26 +366,31 @@ button:hover { background: var(--sage-dark); }
 .stat-card {
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 14px;
-  background: #f8fbf6;
+  padding: 18px 16px;
+  background: linear-gradient(135deg, #f8fbf6 0%, var(--sage-light) 100%);
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-value {
-  margin: 0;
+  margin: 0 0 4px;
   color: var(--navy-dark);
-  font-size: 1.8rem;
+  font-size: 2.1rem;
   font-family: "Fraunces", serif;
+  line-height: 1;
 }
 
 .auction-summary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
+/* ── Tables ──────────────────────────────── */
 .table-wrap {
   overflow: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line);
 }
 
 table {
@@ -300,35 +398,76 @@ table {
   border-collapse: collapse;
 }
 
-th, td {
+th {
+  background: #f3f7f1;
+  color: var(--navy);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   text-align: left;
-  padding: 10px 8px;
+}
+
+td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 10px 12px;
   font-size: 0.92rem;
 }
 
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #f8fbf6; }
+
+/* ── Auth / Login ────────────────────────── */
 .portal-auth {
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 20px;
+  background: linear-gradient(160deg, #e8f0e5 0%, var(--bg) 60%);
 }
 
 .auth-card {
-  width: min(420px, 100%);
+  width: min(440px, 100%);
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 32px 28px 28px;
+  box-shadow: var(--shadow-md);
+}
+
+.auth-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.auth-logo {
+  max-height: 70px;
+  max-width: 260px;
+  width: auto;
+}
+
+.auth-card h1 {
+  text-align: center;
+  font-size: 1.35rem;
+  margin-bottom: 4px;
+}
+
+.auth-card .muted {
+  text-align: center;
+  margin-bottom: 18px;
 }
 
 .auth-card form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .auth-links {
-  margin-top: 10px;
+  margin-top: 12px;
   display: flex;
   justify-content: space-between;
   gap: 14px;
@@ -399,13 +538,24 @@ th, td {
 }
 
 a.btn-ghost {
+  display: inline-block;
   text-decoration: none;
-  padding: 6px 8px;
+  padding: 8px 14px;
   border-radius: 8px;
-  font-size: 0.8rem;
-  cursor: move;
-  user-select: none;
+  font-size: 0.85rem;
+  font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  border: 1.5px solid var(--navy);
+  background: transparent;
+  color: var(--navy);
+  transition: background 0.15s, color 0.15s;
+}
+
+a.btn-ghost:hover {
+  background: var(--navy);
+  color: #fff;
 }
 
 .floor-marker small {
@@ -573,12 +723,20 @@ a.btn-ghost {
 .pipeline-card {
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 12px;
-  background: #f8fbf6;
+  padding: 14px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s;
+}
+
+.pipeline-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .pipeline-card h4 {
   margin: 0 0 6px;
+  font-family: "Fraunces", serif;
+  color: var(--navy);
 }
 
 .progress-wrap {
@@ -618,5 +776,17 @@ a.btn-ghost {
   .portal-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+  }
+  .portal-logo {
+    height: 34px;
+  }
+  .header-actions {
+    flex-wrap: wrap;
+  }
+  .portal-main {
+    padding: 0 14px;
+    margin: 18px auto;
   }
 }
