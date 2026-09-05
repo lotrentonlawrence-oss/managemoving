@@ -108,7 +108,8 @@ The same inquiry submission also posts to the Firebase HTTPS function
    - `LISTING_LOOKUP_ENDPOINT` in `firebase-config.js` is pre-wired to:
      `https://us-central1-sweet-home-transitions.cloudfunctions.net/listingLookup`
    - The `listingLookup` function accepts `POST { urls: [...] }` with a team
-     Firebase ID token, and returns per-URL `{ ok, title, amount, imageUrl, listingUrl }`.
+     Firebase ID token, and returns per-URL `{ ok, title, amount, imageUrl, listingUrl }`;
+     `amount` is `0` when Facebook does not expose a trustworthy page-level price.
    - It reads Open Graph metadata that Facebook serves to link-preview crawlers,
      so the item name and photo come straight from the listing.
    - **Prices are not imported.** A Marketplace page embeds dozens of other
