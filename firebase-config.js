@@ -11,5 +11,9 @@ export const FIREBASE_CONFIG = {
 // uploads the selected floor-plan image to Storage, and returns metadata.
 export const FLOOR_PLAN_LOOKUP_ENDPOINT = "https://us-central1-sweet-home-transitions.cloudfunctions.net/floorPlanLookup";
 
+// HTTPS Cloud Function that reads item name, price, and photo from a
+// Facebook Marketplace listing URL for consignment import.
+export const LISTING_LOOKUP_ENDPOINT = "https://us-central1-sweet-home-transitions.cloudfunctions.net/listingLookup";
+
 // Google Maps JavaScript API key with Places API enabled.
 export const GOOGLE_MAPS_API_KEY = "AIzaSyBZ01dh9n3VTIDOBFP68y1er2Ajmn9nAoI";

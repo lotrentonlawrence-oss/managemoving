@@ -22,7 +22,7 @@ Valley, AL.
 - `storage.rules` — Storage security rules for floor plan uploads
 - `firebase.json` / `.firebaserc` — Firebase project/deploy configuration
 - `firestore.indexes.json` — Firestore index config
-- `functions/` — Firebase Cloud Functions (`floorPlanLookup`, `inquiryIntake`)
+- `functions/` — Firebase Cloud Functions (`floorPlanLookup`, `listingLookup`, `inquiryIntake`)
 - `assets/logo-full.png` — primary full logo used in header/footer and social previews
 - `assets/logo-icon.png` — icon logo used for favicon/tab icon
 - `assets/logo.png` — legacy logo asset retained for compatibility
@@ -67,7 +67,7 @@ The same inquiry submission also posts to the Firebase HTTPS function
    - Use **Client Account Setup** to create client credentials and link each
      account to a selected `projectId`
    - Open **Client Snapshot** from the pipeline card to manage project details,
-     floor plan, auctions, and notes with autosave.
+     floor plan, consignments, and notes with autosave.
 7. Configure automated floor-plan import:
    - `FLOOR_PLAN_LOOKUP_ENDPOINT` is pre-wired to:
      `https://us-central1-sweet-home-transitions.cloudfunctions.net/floorPlanLookup`
@@ -104,6 +104,19 @@ The same inquiry submission also posts to the Firebase HTTPS function
      - Item icon size auto-scales proportionally to drawn floor shape dimensions
    - In **Client Snapshot**, use **Find & Import Floor Plan** to auto-populate
      floor plan image + dimensions from the address.
+8. Configure Facebook Marketplace consignment import:
+   - `LISTING_LOOKUP_ENDPOINT` in `firebase-config.js` is pre-wired to:
+     `https://us-central1-sweet-home-transitions.cloudfunctions.net/listingLookup`
+   - The `listingLookup` function accepts `POST { urls: [...] }` with a team
+     Firebase ID token, and returns per-URL `{ ok, title, amount, imageUrl, listingUrl }`.
+   - It reads Open Graph metadata that Facebook serves to link-preview crawlers,
+     so the item name, asking price, and photo come straight from the listing.
+   - Optional `LISTING_TIMEOUT_MS` environment variable controls the per-listing
+     fetch timeout (default 10000 ms).
+   - Listings that are private or behind a login wall are never given a bogus
+     name; they import with their link attached and are flagged for renaming.
+   - In **Client Snapshot → Consignment Management → Import Listings**, paste up
+     to 25 Marketplace links (one per line) to import them as consignment items.
 
 Firebase CLI deploy (from this folder):
 
@@ -121,8 +134,10 @@ can access `team.html`.
 
 Important: third-party listing sources (including Zillow/Realtor/Homes/county
 systems) must be integrated through licensed/authorized APIs or data feeds
-that allow this use.
+that allow this use. The Facebook Marketplace import reads only the public
+link-preview metadata of listings your team supplies, and respects login-gated
+listings by leaving them for manual entry.
 
 Data is organized under `projects/{projectId}` with subcollections:
 - `floorPlanItems` (for draggable item placements)
-- `auctionItems` (for sold/unsold tracking and amounts)
+- `auctionItems` (legacy collection name for consignment sold/unsold tracking and amounts)

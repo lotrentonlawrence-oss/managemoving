@@ -19,7 +19,7 @@ const hoursValue = document.getElementById("hoursValue");
 const soldAmount = document.getElementById("soldAmount");
 const soldCount = document.getElementById("soldCount");
 const unsoldCount = document.getElementById("unsoldCount");
-const auctionBody = document.getElementById("auctionBody");
+const consignmentBody = document.getElementById("consignmentBody");
 const floorPlanCanvas = document.getElementById("floorPlanCanvas");
 const zoomLabel = document.getElementById("zoomLabel");
 const zoomInBtn = document.getElementById("zoomInBtn");
@@ -53,11 +53,11 @@ function renderContractors(contractors = []) {
   });
 }
 
-function renderAuction(items = []) {
+function renderConsignment(items = []) {
   let soldTotal = 0;
   let sold = 0;
   let unsold = 0;
-  auctionBody.innerHTML = "";
+  consignmentBody.innerHTML = "";
 
   items.forEach((item) => {
     const amount = Number(item.amount || 0);
@@ -74,7 +74,7 @@ function renderAuction(items = []) {
       <td>${(item.status || "to_be_sold").replaceAll("_", " ")}</td>
       <td>${formatCurrency(amount)}</td>
     `;
-    auctionBody.appendChild(tr);
+    consignmentBody.appendChild(tr);
   });
 
   soldAmount.textContent = formatCurrency(soldTotal);
@@ -120,7 +120,8 @@ observeAuth(async (user) => {
 
   const projectRef = doc(db, "projects", resolvedProjectId);
   const floorQuery = query(collection(db, "projects", resolvedProjectId, "floorPlanItems"));
-  const auctionQuery = query(collection(db, "projects", resolvedProjectId, "auctionItems"), orderBy("createdAt", "desc"));
+  // Keep the legacy collection name so existing projects continue to display their items.
+  const consignmentQuery = query(collection(db, "projects", resolvedProjectId, "auctionItems"), orderBy("createdAt", "desc"));
 
   onSnapshot(projectRef, (snap) => {
     if (!snap.exists()) return;
@@ -141,8 +142,8 @@ observeAuth(async (user) => {
     renderFloorPlan(latestProjectData, items);
   });
 
-  onSnapshot(auctionQuery, (snap) => {
+  onSnapshot(consignmentQuery, (snap) => {
     const items = snap.docs.map((d) => d.data());
-    renderAuction(items);
+    renderConsignment(items);
   });
 });

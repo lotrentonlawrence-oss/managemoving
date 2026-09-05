@@ -1,5 +1,5 @@
 import { observeAuth, logout, resolvePortalContext, db, storage, auth } from "./portal.js";
-import { FLOOR_PLAN_LOOKUP_ENDPOINT, GOOGLE_MAPS_API_KEY } from "./firebase-config.js";
+import { FLOOR_PLAN_LOOKUP_ENDPOINT, GOOGLE_MAPS_API_KEY, LISTING_LOOKUP_ENDPOINT } from "./firebase-config.js";
 import {
   doc,
   onSnapshot,
@@ -60,11 +60,18 @@ const itemIconType = document.getElementById("itemIconType");
 const itemHint = document.getElementById("itemHint");
 const itemWidthFtInput = document.getElementById("itemWidthFt");
 const itemDepthFtInput = document.getElementById("itemDepthFt");
-const auctionForm = document.getElementById("auctionForm");
-const auctionTitle = document.getElementById("auctionTitle");
-const auctionStatus = document.getElementById("auctionStatus");
-const auctionAmount = document.getElementById("auctionAmount");
-const teamAuctionBody = document.getElementById("teamAuctionBody");
+const consignmentForm = document.getElementById("consignmentForm");
+const consignmentTitle = document.getElementById("consignmentTitle");
+const consignmentStatus = document.getElementById("consignmentStatus");
+const consignmentAmount = document.getElementById("consignmentAmount");
+const teamConsignmentBody = document.getElementById("teamConsignmentBody");
+const consignmentItemsTab = document.getElementById("consignmentItemsTab");
+const consignmentImportTab = document.getElementById("consignmentImportTab");
+const consignmentItemsPanel = document.getElementById("consignmentItemsPanel");
+const consignmentImportPanel = document.getElementById("consignmentImportPanel");
+const consignmentImportForm = document.getElementById("consignmentImportForm");
+const consignmentImportUrls = document.getElementById("consignmentImportUrls");
+const consignmentImportStatus = document.getElementById("consignmentImportStatus");
 const timeEntryForm = document.getElementById("timeEntryForm");
 const timeEntryDate = document.getElementById("timeEntryDate");
 const timeEntryTimeIn = document.getElementById("timeEntryTimeIn");
@@ -856,15 +863,32 @@ function renderFloor(items = []) {
   });
 }
 
-function renderAuction(items = []) {
-  teamAuctionBody.innerHTML = "";
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[character]));
+}
+
+function renderConsignment(items = []) {
+  teamConsignmentBody.innerHTML = "";
   items.forEach(({ id, data }) => {
     const title = data.title || "";
     const status = data.status || "to_be_sold";
     const amount = Number(data.amount || 0);
+    const source = data.source || "Manual";
+    const needsName = data.listingTitleResolved === false;
+    const safeSource = escapeHtml(source);
+    const safeListingUrl = data.listingUrl ? encodeURI(data.listingUrl) : "";
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${title}</td>
+      <td>
+        <input data-role="title" data-id="${id}" type="text" value="${escapeHtml(title)}"
+          class="${needsName ? "needs-name" : ""}" aria-label="Item name">
+      </td>
       <td>
         <select data-role="status" data-id="${id}">
           <option value="to_be_sold" ${status === "to_be_sold" ? "selected" : ""}>To Be Sold</option>
@@ -873,11 +897,25 @@ function renderAuction(items = []) {
         </select>
       </td>
       <td><input data-role="amount" data-id="${id}" type="number" min="0" step="0.01" value="${amount}"></td>
+      <td>${safeListingUrl ? `<a href="${safeListingUrl}" target="_blank" rel="noopener">${safeSource}</a>` : safeSource}</td>
       <td><button class="btn-danger btn-sm" data-role="delete" data-id="${id}">Remove</button></td>
     `;
-    teamAuctionBody.appendChild(tr);
+    teamConsignmentBody.appendChild(tr);
   });
 }
+
+function setConsignmentTab(tab) {
+  const importing = tab === "import";
+  consignmentItemsTab.classList.toggle("is-active", !importing);
+  consignmentImportTab.classList.toggle("is-active", importing);
+  consignmentItemsTab.setAttribute("aria-selected", String(!importing));
+  consignmentImportTab.setAttribute("aria-selected", String(importing));
+  consignmentItemsPanel.hidden = importing;
+  consignmentImportPanel.hidden = !importing;
+}
+
+consignmentItemsTab.addEventListener("click", () => setConsignmentTab("items"));
+consignmentImportTab.addEventListener("click", () => setConsignmentTab("import"));
 
 teamFloorCanvas.addEventListener("pointerdown", (event) => {
   if (!drawShapeMode) return;
@@ -1227,25 +1265,126 @@ timeEntriesBody.addEventListener("click", async (e) => {
   }
 });
 
-auctionForm.addEventListener("submit", async (event) => {
+consignmentForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const title = auctionTitle.value.trim();
+  const title = consignmentTitle.value.trim();
   if (!title) return;
   await addDoc(collection(db, "projects", projectId, "auctionItems"), {
     title,
-    status: auctionStatus.value,
-    amount: Number(auctionAmount.value || 0),
+    status: consignmentStatus.value,
+    amount: Number(consignmentAmount.value || 0),
+    source: "Manual",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
-  auctionForm.reset();
-  auctionStatus.value = "to_be_sold";
+  consignmentForm.reset();
+  consignmentStatus.value = "to_be_sold";
 });
 
-teamAuctionBody.addEventListener("change", async (event) => {
+async function lookupListings(urls) {
+  const idToken = await auth.currentUser.getIdToken();
+  const resp = await fetch(LISTING_LOOKUP_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`
+    },
+    body: JSON.stringify({ urls })
+  });
+  if (!resp.ok) {
+    const detail = await resp.json().catch(() => ({}));
+    throw new Error(detail.error || `Listing lookup failed (${resp.status})`);
+  }
+  const data = await resp.json();
+  return Array.isArray(data.results) ? data.results : [];
+}
+
+function fallbackListingTitle(listingUrl) {
+  const itemId = String(listingUrl).match(/\/marketplace\/item\/(\d+)/)?.[1];
+  return itemId ? `Marketplace item ${itemId} (add name)` : "Marketplace listing (add name)";
+}
+
+consignmentImportForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const source = "Facebook Marketplace";
+  const urls = consignmentImportUrls.value.split(/\r?\n/).map((url) => url.trim()).filter(Boolean);
+  const validUrls = urls.filter((url) => {
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === "https:" && /(^|\.)(facebook|fb)\.com$/i.test(parsed.hostname);
+    } catch {
+      return false;
+    }
+  });
+  if (!validUrls.length) {
+    consignmentImportStatus.textContent = "Add at least one Facebook Marketplace listing link (https://www.facebook.com/marketplace/item/...).";
+    return;
+  }
+
+  const importButton = consignmentImportForm.querySelector("button[type='submit']");
+  importButton.disabled = true;
+  consignmentImportStatus.textContent = `Reading ${validUrls.length} listing${validUrls.length === 1 ? "" : "s"} from Facebook Marketplace…`;
+
+  let results = [];
+  let lookupFailed = false;
+  try {
+    results = await lookupListings(validUrls);
+  } catch (error) {
+    lookupFailed = true;
+    console.warn("Listing lookup unavailable", error);
+  }
+
+  const byUrl = new Map(results.map((result) => [result.requestedUrl, result]));
+  let namedCount = 0;
+
+  try {
+    await Promise.all(validUrls.map((listingUrl) => {
+      const result = byUrl.get(listingUrl);
+      const resolvedTitle = result?.ok && result.title ? result.title : "";
+      if (resolvedTitle) namedCount += 1;
+      return addDoc(collection(db, "projects", projectId, "auctionItems"), {
+        title: resolvedTitle || fallbackListingTitle(listingUrl),
+        status: "to_be_sold",
+        amount: Number(result?.amount || 0),
+        source,
+        listingUrl: result?.listingUrl || listingUrl,
+        listingImageUrl: result?.imageUrl || "",
+        listingTitleResolved: Boolean(resolvedTitle),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }));
+  } finally {
+    importButton.disabled = false;
+  }
+
+  consignmentImportUrls.value = "";
+  const total = validUrls.length;
+  const plural = total === 1 ? "" : "s";
+  if (lookupFailed) {
+    consignmentImportStatus.textContent = `${total} listing${plural} imported, but Facebook could not be reached for item names. Type the names in Consignment Items.`;
+  } else if (namedCount === total) {
+    consignmentImportStatus.textContent = `${total} listing${plural} imported with item names from Facebook Marketplace.`;
+  } else {
+    consignmentImportStatus.textContent = `${total} listing${plural} imported. ${namedCount} name${namedCount === 1 ? "" : "s"} read from Facebook; the rest are private listings — type those names in Consignment Items.`;
+  }
+});
+
+teamConsignmentBody.addEventListener("change", async (event) => {
   const target = event.target;
   const id = target.dataset.id;
   if (!id) return;
+  if (target.dataset.role === "title") {
+    const title = target.value.trim();
+    if (!title) return;
+    target.classList.remove("needs-name");
+    await updateDoc(doc(db, "projects", projectId, "auctionItems", id), {
+      title,
+      listingTitleResolved: true,
+      updatedAt: serverTimestamp()
+    });
+    return;
+  }
   if (target.dataset.role === "status") {
     await updateDoc(doc(db, "projects", projectId, "auctionItems", id), { status: target.value, updatedAt: serverTimestamp() });
     return;
@@ -1255,7 +1394,7 @@ teamAuctionBody.addEventListener("change", async (event) => {
   }
 });
 
-teamAuctionBody.addEventListener("click", async (event) => {
+teamConsignmentBody.addEventListener("click", async (event) => {
   const target = event.target;
   if (target.dataset.role !== "delete") return;
   const id = target.dataset.id;
@@ -1281,7 +1420,7 @@ observeAuth(async (user) => {
 
   const projectRef = doc(db, "projects", projectId);
   const floorQuery = query(collection(db, "projects", projectId, "floorPlanItems"));
-  const auctionQuery = query(collection(db, "projects", projectId, "auctionItems"), orderBy("createdAt", "desc"));
+  const consignmentQuery = query(collection(db, "projects", projectId, "auctionItems"), orderBy("createdAt", "desc"));
 
   onSnapshot(projectRef, (snap) => {
     if (!snap.exists()) return;
@@ -1343,9 +1482,9 @@ observeAuth(async (user) => {
     renderFloor(floorItemsCache);
   });
 
-  onSnapshot(auctionQuery, (snap) => {
+  onSnapshot(consignmentQuery, (snap) => {
     const items = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    renderAuction(items);
+    renderConsignment(items);
   });
 
   const timeEntriesQuery = query(
