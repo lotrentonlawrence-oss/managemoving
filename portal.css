@@ -180,6 +180,18 @@ input.needs-name {
   background: #fdf7ec;
 }
 
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.row-actions button[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 /* ── Forms ───────────────────────────────── */
 label {
   font-size: 0.82rem;

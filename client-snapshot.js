@@ -898,7 +898,10 @@ function renderConsignment(items = []) {
       </td>
       <td><input data-role="amount" data-id="${id}" type="number" min="0" step="0.01" value="${amount}"></td>
       <td>${safeListingUrl ? `<a href="${safeListingUrl}" target="_blank" rel="noopener">${safeSource}</a>` : safeSource}</td>
-      <td><button class="btn-danger btn-sm" data-role="delete" data-id="${id}">Remove</button></td>
+      <td class="row-actions">
+        ${safeListingUrl ? `<button class="btn-ghost btn-sm" data-role="refresh-name" data-id="${id}" data-listing-url="${safeListingUrl}">Get name</button>` : ""}
+        <button class="btn-danger btn-sm" data-role="delete" data-id="${id}">Remove</button>
+      </td>
     `;
     teamConsignmentBody.appendChild(tr);
   });
@@ -1364,7 +1367,7 @@ consignmentImportForm.addEventListener("submit", async (event) => {
   if (lookupFailed) {
     consignmentImportStatus.textContent = `${total} listing${plural} imported, but Facebook could not be reached for item names. Type the names in Consignment Items.`;
   } else if (namedCount === total) {
-    consignmentImportStatus.textContent = `${total} listing${plural} imported with item names from Facebook Marketplace.`;
+    consignmentImportStatus.textContent = `${total} listing${plural} imported with item names from Facebook Marketplace. Facebook does not publish asking prices, so add the sale amounts below.`;
   } else {
     consignmentImportStatus.textContent = `${total} listing${plural} imported. ${namedCount} name${namedCount === 1 ? "" : "s"} read from Facebook; the rest are private listings — type those names in Consignment Items.`;
   }
@@ -1396,8 +1399,41 @@ teamConsignmentBody.addEventListener("change", async (event) => {
 
 teamConsignmentBody.addEventListener("click", async (event) => {
   const target = event.target;
-  if (target.dataset.role !== "delete") return;
   const id = target.dataset.id;
+  if (!id) return;
+
+  if (target.dataset.role === "refresh-name") {
+    const listingUrl = target.dataset.listingUrl;
+    if (!listingUrl) return;
+    const originalLabel = target.textContent;
+    target.disabled = true;
+    target.textContent = "Reading…";
+    try {
+      const [result] = await lookupListings([listingUrl]);
+      if (!result?.ok || !result.title) {
+        throw new Error(result?.error || "Facebook did not return a name for this listing");
+      }
+      await updateDoc(doc(db, "projects", projectId, "auctionItems", id), {
+        title: result.title,
+        listingTitleResolved: true,
+        listingImageUrl: result.imageUrl || "",
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.warn("Name lookup failed", error);
+      target.textContent = "Not found";
+      window.setTimeout(() => {
+        target.textContent = originalLabel;
+        target.disabled = false;
+      }, 2400);
+      return;
+    }
+    // A successful update re-renders the row through the snapshot listener,
+    // so the button is replaced rather than restored here.
+    return;
+  }
+
+  if (target.dataset.role !== "delete") return;
   await deleteDoc(doc(db, "projects", projectId, "auctionItems", id));
 });
 

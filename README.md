@@ -110,11 +110,20 @@ The same inquiry submission also posts to the Firebase HTTPS function
    - The `listingLookup` function accepts `POST { urls: [...] }` with a team
      Firebase ID token, and returns per-URL `{ ok, title, amount, imageUrl, listingUrl }`.
    - It reads Open Graph metadata that Facebook serves to link-preview crawlers,
-     so the item name, asking price, and photo come straight from the listing.
+     so the item name and photo come straight from the listing.
+   - **Prices are not imported.** A Marketplace page embeds dozens of other
+     listings that Facebook recommends alongside the real one, and their order
+     changes between requests, so scraping a price returns an arbitrary
+     neighbour's amount (the same URL measured twice returned $450 and then
+     $100). Facebook does not publish the asking price in the page-level meta
+     tags, so imported items start at $0 and the team enters the amount.
+     For the same reason the item name is read only from page-level tags.
    - Optional `LISTING_TIMEOUT_MS` environment variable controls the per-listing
      fetch timeout (default 10000 ms).
    - Listings that are private or behind a login wall are never given a bogus
      name; they import with their link attached and are flagged for renaming.
+   - **Get name** on any consignment row re-reads the name from its saved
+     listing link, for items imported while the function was unavailable.
    - In **Client Snapshot → Consignment Management → Import Listings**, paste up
      to 25 Marketplace links (one per line) to import them as consignment items.
 

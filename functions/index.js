@@ -263,20 +263,18 @@ function cleanListingTitle(rawTitle) {
   return title.slice(0, 200);
 }
 
+// A Marketplace page embeds dozens of *other* listings that Facebook
+// recommends alongside the one that was requested, and their order changes
+// between requests. Scanning the embedded JSON therefore returns an arbitrary
+// neighbouring listing's price: the same URL measured twice produced $450 and
+// then $100. Only the page-level price meta tags describe the requested
+// listing, so anything else is left at zero for the team to enter by hand
+// rather than importing a wrong consignment amount.
 function parseListingPrice(html) {
   const candidates = [
     metaContent(html, "product:price:amount"),
     metaContent(html, "og:price:amount")
   ];
-
-  const description = metaContent(html, "og:description");
-  const descriptionPrice = description.match(/\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)/);
-  if (descriptionPrice) candidates.push(descriptionPrice[1]);
-
-  const embeddedPrice =
-    html.match(/"formatted_amount"\s*:\s*"\$?([0-9][0-9,]*(?:\.[0-9]{2})?)"/i) ||
-    html.match(/"amount"\s*:\s*"?([0-9]+(?:\.[0-9]{1,2})?)"?/i);
-  if (embeddedPrice) candidates.push(embeddedPrice[1]);
 
   for (const candidate of candidates) {
     const amount = Number(String(candidate || "").replace(/[^0-9.]/g, ""));
@@ -286,11 +284,14 @@ function parseListingPrice(html) {
 }
 
 function extractListingTitle(html) {
+  // Page-level tags only, for the same reason as parseListingPrice: the
+  // embedded "marketplace_listing_title" values belong to the recommended
+  // listings injected next to the real one, so reading them can silently name
+  // an item after somebody else's listing.
   const rawCandidates = [
     metaContent(html, "og:title"),
     metaContent(html, "twitter:title"),
-    html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "",
-    html.match(/"marketplace_listing_title"\s*:\s*"([^"]+)"/i)?.[1] ?? ""
+    html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? ""
   ];
 
   for (const candidate of rawCandidates) {
