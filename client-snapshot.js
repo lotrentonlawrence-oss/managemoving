@@ -866,7 +866,7 @@ function renderAuction(items = []) {
     const amount = Number(data.amount || 0);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${title}</td>
+      <td><input data-role="title" data-id="${id}" type="text" value="${title.replaceAll("\"", "&quot;")}" aria-label="Item name"></td>
       <td>
         <select data-role="status" data-id="${id}">
           <option value="to_be_sold" ${status === "to_be_sold" ? "selected" : ""}>To Be Sold</option>
@@ -1254,6 +1254,15 @@ teamAuctionBody.addEventListener("change", async (event) => {
   }
   if (target.dataset.role === "amount") {
     await updateDoc(doc(db, "projects", projectId, "auctionItems", id), { amount: Number(target.value || 0), updatedAt: serverTimestamp() });
+    return;
+  }
+  if (target.dataset.role === "title") {
+    const title = target.value.trim();
+    if (!title) {
+      target.value = auctionItemsCache.find((item) => item.id === id)?.data.title || "";
+      return;
+    }
+    await updateDoc(doc(db, "projects", projectId, "auctionItems", id), { title, updatedAt: serverTimestamp() });
   }
 });
 
