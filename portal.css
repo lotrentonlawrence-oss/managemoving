@@ -262,6 +262,18 @@ input.address-input:disabled {
   padding: 5px 10px;
 }
 
+.btn-print {
+  width: auto;
+  margin-top: 14px;
+  background: var(--navy);
+  color: #fff;
+}
+
+.btn-print:hover {
+  background: var(--navy-dark);
+  box-shadow: 0 2px 8px rgba(30,53,80,0.25);
+}
+
 .preview-banner {
   display: inline-flex;
   align-items: center;

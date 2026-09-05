@@ -65,6 +65,7 @@ const auctionTitle = document.getElementById("auctionTitle");
 const auctionStatus = document.getElementById("auctionStatus");
 const auctionAmount = document.getElementById("auctionAmount");
 const teamAuctionBody = document.getElementById("teamAuctionBody");
+const printConsignmentSheetBtn = document.getElementById("printConsignmentSheetBtn");
 const timeEntryForm = document.getElementById("timeEntryForm");
 const timeEntryDate = document.getElementById("timeEntryDate");
 const timeEntryTimeIn = document.getElementById("timeEntryTimeIn");
@@ -81,6 +82,7 @@ if (projectId && previewClientBtn) {
 }
 
 let currentProject = {};
+let auctionItemsCache = [];
 let pendingPosition = { x: 50, y: 50 };
 let saveTimer = null;
 let suppressAutosave = false;
@@ -1262,6 +1264,89 @@ teamAuctionBody.addEventListener("click", async (event) => {
   await deleteDoc(doc(db, "projects", projectId, "auctionItems", id));
 });
 
+const CONSIGNMENT_FEE_RATE = 0.3;
+
+function buildConsignmentSheetHtml() {
+  const soldItems = auctionItemsCache
+    .filter(({ data }) => (data.status || "") === "sold")
+    .map(({ data }) => ({ title: data.title || "", amount: Number(data.amount || 0) }));
+
+  const totalSold = soldItems.reduce((sum, item) => sum + item.amount, 0);
+  const consignmentFee = totalSold * CONSIGNMENT_FEE_RATE;
+  const totalDue = totalSold - consignmentFee;
+  const currency = (value) => `$${value.toFixed(2)}`;
+  const consigneeName = currentProject.clientName || currentProject.title || "Consignee";
+  const today = new Date().toLocaleDateString();
+  const logoUrl = new URL("assets/logo-full.png", window.location.href).href;
+
+  const rows = soldItems.length
+    ? soldItems.map((item) => `
+      <tr>
+        <td>${item.title}</td>
+        <td class="amount">${currency(item.amount)}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="2" class="empty">No sold items yet.</td></tr>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sold Consignment Sheet — ${consigneeName}</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1e3550; margin: 40px; }
+  .header { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #1e3550; padding-bottom: 16px; margin-bottom: 24px; }
+  .header img { height: 64px; }
+  .header h1 { font-size: 1.4rem; margin: 0; }
+  .meta { margin-bottom: 20px; font-size: 0.95rem; }
+  .meta div { margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  th, td { border-bottom: 1px solid #ccd6e0; padding: 8px 10px; text-align: left; }
+  th { background: #f0f4f8; }
+  td.amount, th.amount { text-align: right; }
+  td.empty { text-align: center; color: #777; font-style: italic; }
+  .totals { width: 320px; margin-left: auto; }
+  .totals div { display: flex; justify-content: space-between; padding: 6px 0; }
+  .totals .grand { border-top: 2px solid #1e3550; font-weight: bold; font-size: 1.1rem; padding-top: 10px; }
+  @media print { body { margin: 0.5in; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <img src="${logoUrl}" alt="Sweet Home Transitions logo">
+    <h1>Sold Consignment Sheet</h1>
+  </div>
+  <div class="meta">
+    <div><strong>Consignee:</strong> ${consigneeName}</div>
+    <div><strong>Date:</strong> ${today}</div>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Item</th><th class="amount">Sold Price</th></tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+  <div class="totals">
+    <div><span>Total Sold Items</span><span>${soldItems.length}</span></div>
+    <div><span>Total Sold Amount</span><span>${currency(totalSold)}</span></div>
+    <div><span>Consignment Fee (30%)</span><span>-${currency(consignmentFee)}</span></div>
+    <div class="grand"><span>Total Due to Consignee</span><span>${currency(totalDue)}</span></div>
+  </div>
+</body>
+</html>`;
+}
+
+printConsignmentSheetBtn.addEventListener("click", () => {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+  printWindow.document.write(buildConsignmentSheetHtml());
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.onload = () => printWindow.print();
+});
+
 observeAuth(async (user) => {
   if (!user) {
     window.location.href = "./login.html";
@@ -1345,6 +1430,7 @@ observeAuth(async (user) => {
 
   onSnapshot(auctionQuery, (snap) => {
     const items = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    auctionItemsCache = items;
     renderAuction(items);
   });
 
