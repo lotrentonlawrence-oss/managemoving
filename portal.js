@@ -6,7 +6,9 @@ import {
   signOut,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  fetchSignInMethodsForEmail
+  fetchSignInMethodsForEmail,
+  setPersistence,
+  browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   getFirestore,
@@ -21,20 +23,64 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
+const PASSWORD_VERIFIED_SESSION_KEY = "sht.portalPasswordVerified";
+const authPersistenceReady = setPersistence(auth, browserSessionPersistence);
+
+function markPasswordVerified(user) {
+  sessionStorage.setItem(PASSWORD_VERIFIED_SESSION_KEY, JSON.stringify({
+    uid: user.uid,
+    verifiedAt: Date.now()
+  }));
+}
+
+export function clearPasswordVerifiedSession() {
+  sessionStorage.removeItem(PASSWORD_VERIFIED_SESSION_KEY);
+}
+
+export function hasPasswordVerifiedSession(user) {
+  if (!user) return false;
+  const raw = sessionStorage.getItem(PASSWORD_VERIFIED_SESSION_KEY);
+  if (!raw) return false;
+
+  try {
+    const value = JSON.parse(raw);
+    return value && value.uid === user.uid;
+  } catch (_err) {
+    clearPasswordVerifiedSession();
+    return false;
+  }
+}
+
+export async function requirePasswordVerifiedSession(user) {
+  if (hasPasswordVerifiedSession(user)) return true;
+  clearPasswordVerifiedSession();
+  await authPersistenceReady;
+  await signOut(auth);
+  return false;
+}
+
 export function observeAuth(callback) {
   return onAuthStateChanged(auth, callback);
 }
 
 export async function login(email, password) {
-  return signInWithEmailAndPassword(auth, email, password);
+  await authPersistenceReady;
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  markPasswordVerified(result.user);
+  return result;
 }
 
 export async function logout() {
+  clearPasswordVerifiedSession();
+  await authPersistenceReady;
   return signOut(auth);
 }
 
 export async function createAccount(email, password) {
-  return createUserWithEmailAndPassword(auth, email, password);
+  await authPersistenceReady;
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+  markPasswordVerified(result.user);
+  return result;
 }
 
 export async function resetPasswordForRegisteredAccount(email) {

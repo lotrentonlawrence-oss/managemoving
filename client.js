@@ -1,4 +1,4 @@
-import { observeAuth, logout, resolvePortalContext, db, formatCurrency } from "./portal.js";
+import { observeAuth, logout, requirePasswordVerifiedSession, resolvePortalContext, db, formatCurrency } from "./portal.js?v=20260905a";
 import {
   doc,
   onSnapshot,
@@ -99,6 +99,10 @@ function renderFloorPlan(project, items = []) {
 
 observeAuth(async (user) => {
   if (!user) {
+    window.location.href = "./login.html";
+    return;
+  }
+  if (!(await requirePasswordVerifiedSession(user))) {
     window.location.href = "./login.html";
     return;
   }

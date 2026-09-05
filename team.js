@@ -1,4 +1,4 @@
-import { observeAuth, logout, resolvePortalContext, db, auth } from "./portal.js";
+import { observeAuth, logout, requirePasswordVerifiedSession, resolvePortalContext, db, auth } from "./portal.js?v=20260905a";
 import { FIREBASE_CONFIG } from "./firebase-config.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
@@ -228,6 +228,10 @@ setTeamActionsEnabled(false);
 
 observeAuth(async (user) => {
   if (!user) {
+    window.location.href = "./login.html";
+    return;
+  }
+  if (!(await requirePasswordVerifiedSession(user))) {
     window.location.href = "./login.html";
     return;
   }
