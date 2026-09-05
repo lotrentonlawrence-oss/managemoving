@@ -16,7 +16,7 @@ Valley, AL.
 - `team.html`, `team.js` — business team dashboard for project updates
 - `client-snapshot.html`, `client-snapshot.js` — team-only detailed client page with autosave
 - `portal.css` — shared styling for portal pages
-- `portal.js` — shared Firebase auth/routing helpers
+- `portal.js` — shared Firebase auth/routing helpers, including password-verified session checks
 - `firebase-config.js` — Firebase web app config placeholders
 - `firebase.rules` — Firestore security rules for team/client access
 - `storage.rules` — Storage security rules for floor plan uploads
@@ -118,6 +118,13 @@ in your Cloud Functions deployment configuration.
 
 Current team-access restriction: only `trenton@sweethometransitions.com`
 can access `team.html`.
+
+Portal sessions use Firebase browser-session persistence plus a password-verified
+session marker. Visiting the login screen clears any existing auth state, and
+protected portal pages redirect back to login if the current user did not sign
+in with a password during the active browser session. Browser or password
+manager autofill can still populate the password field because the login form
+uses standard username/password autocomplete attributes.
 
 Important: third-party listing sources (including Zillow/Realtor/Homes/county
 systems) must be integrated through licensed/authorized APIs or data feeds

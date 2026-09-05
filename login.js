@@ -1,10 +1,10 @@
 import {
-  observeAuth,
   login,
+  logout,
   createAccount,
   resetPasswordForRegisteredAccount,
   resolvePortalContext
-} from "./portal.js";
+} from "./portal.js?v=20260905a";
 
 const form = document.getElementById("loginForm");
 const note = document.getElementById("loginNote");
@@ -28,10 +28,8 @@ function routeByRole(role) {
   note.textContent = "Your account is active, but no project access has been assigned yet.";
 }
 
-observeAuth(async (user) => {
-  if (!user) return;
-  const ctx = await resolvePortalContext(user);
-  routeByRole(ctx.role);
+logout().catch((err) => {
+  note.textContent = err.message || "Please sign in with your password.";
 });
 
 form.addEventListener("submit", async (event) => {

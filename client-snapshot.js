@@ -1,4 +1,4 @@
-import { observeAuth, logout, resolvePortalContext, db, storage, auth } from "./portal.js";
+import { observeAuth, logout, requirePasswordVerifiedSession, resolvePortalContext, db, storage, auth } from "./portal.js?v=20260905a";
 import { FLOOR_PLAN_LOOKUP_ENDPOINT, GOOGLE_MAPS_API_KEY } from "./firebase-config.js";
 import {
   doc,
@@ -1264,6 +1264,10 @@ teamAuctionBody.addEventListener("click", async (event) => {
 
 observeAuth(async (user) => {
   if (!user) {
+    window.location.href = "./login.html";
+    return;
+  }
+  if (!(await requirePasswordVerifiedSession(user))) {
     window.location.href = "./login.html";
     return;
   }
