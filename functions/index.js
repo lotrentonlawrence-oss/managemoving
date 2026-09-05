@@ -170,6 +170,188 @@ async function storeFloorPlanImage(projectId, remoteImageUrl) {
   return { signedUrl, storagePath: path };
 }
 
+const LISTING_FETCH_TIMEOUT_MS = Number(process.env.LISTING_TIMEOUT_MS || 10000);
+
+// Facebook serves Open Graph metadata to link-preview crawlers. A normal browser
+// user agent usually gets a login wall instead, so crawler agents are tried first.
+const LISTING_USER_AGENTS = [
+  "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+  "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+];
+
+// Titles Facebook returns for login walls, checkpoints, and removed listings.
+const REJECTED_TITLE_PATTERNS = [
+  /^facebook$/i,
+  /^marketplace$/i,
+  /^log ?in( or sign ?up)?/i,
+  /^sign ?up/i,
+  /^security check/i,
+  /^error$/i,
+  /^page not found/i,
+  /^content not found/i,
+  /^this content isn'?t available/i,
+  /^redirecting/i
+];
+
+function decodeHtmlEntities(value) {
+  const named = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: '"',
+    apos: "'",
+    nbsp: " ",
+    "#39": "'"
+  };
+  return String(value || "")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)))
+    .replace(/&([a-z]+|#\d+);/gi, (match, entity) => named[entity.toLowerCase()] ?? match);
+}
+
+function metaContent(html, property) {
+  const pattern = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${property}["'][^>]*content=["']([^"']*)["']`,
+    "i"
+  );
+  const reversed = new RegExp(
+    `<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${property}["']`,
+    "i"
+  );
+  const match = html.match(pattern) || html.match(reversed);
+  return match ? decodeHtmlEntities(match[1]).trim() : "";
+}
+
+// Marketplace URLs carry large tracking payloads; keep only the canonical item path.
+function listingSourceForUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(String(rawUrl || "").trim());
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:") return null;
+
+  const host = parsed.hostname.toLowerCase();
+  const isFacebook =
+    host === "facebook.com" ||
+    host === "fb.com" ||
+    host.endsWith(".facebook.com") ||
+    host.endsWith(".fb.com");
+  if (!isFacebook) return null;
+
+  const itemId = parsed.pathname.match(/\/marketplace\/item\/(\d+)/)?.[1];
+  const canonicalUrl = itemId
+    ? `https://www.facebook.com/marketplace/item/${itemId}/`
+    : `https://www.facebook.com${parsed.pathname}`;
+
+  return { source: "Facebook Marketplace", url: canonicalUrl, itemId: itemId || "" };
+}
+
+function cleanListingTitle(rawTitle) {
+  let title = decodeHtmlEntities(rawTitle).replace(/\s+/g, " ").trim();
+  if (!title) return "";
+
+  title = title.replace(/\s*[-|·]\s*(Facebook\s*Marketplace|Marketplace|Facebook)\s*$/i, "");
+  title = title.replace(/^\s*(Facebook\s*Marketplace|Marketplace)\s*[-|·:]\s*/i, "");
+  title = title.trim();
+
+  if (REJECTED_TITLE_PATTERNS.some((pattern) => pattern.test(title))) return "";
+  if (title.length < 2) return "";
+
+  return title.slice(0, 200);
+}
+
+function parseListingPrice(html) {
+  const candidates = [
+    metaContent(html, "product:price:amount"),
+    metaContent(html, "og:price:amount")
+  ];
+
+  const description = metaContent(html, "og:description");
+  const descriptionPrice = description.match(/\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)/);
+  if (descriptionPrice) candidates.push(descriptionPrice[1]);
+
+  const embeddedPrice =
+    html.match(/"formatted_amount"\s*:\s*"\$?([0-9][0-9,]*(?:\.[0-9]{2})?)"/i) ||
+    html.match(/"amount"\s*:\s*"?([0-9]+(?:\.[0-9]{1,2})?)"?/i);
+  if (embeddedPrice) candidates.push(embeddedPrice[1]);
+
+  for (const candidate of candidates) {
+    const amount = Number(String(candidate || "").replace(/[^0-9.]/g, ""));
+    if (Number.isFinite(amount) && amount > 0) return amount;
+  }
+  return 0;
+}
+
+function extractListingTitle(html) {
+  const rawCandidates = [
+    metaContent(html, "og:title"),
+    metaContent(html, "twitter:title"),
+    html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "",
+    html.match(/"marketplace_listing_title"\s*:\s*"([^"]+)"/i)?.[1] ?? ""
+  ];
+
+  for (const candidate of rawCandidates) {
+    const title = cleanListingTitle(candidate);
+    if (title) return title;
+  }
+  return "";
+}
+
+async function fetchListingPage(url, userAgent) {
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), LISTING_FETCH_TIMEOUT_MS);
+  try {
+    const resp = await fetch(url, {
+      redirect: "follow",
+      headers: {
+        "User-Agent": userAgent,
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9"
+      },
+      signal: ctrl.signal
+    });
+    if (!resp.ok) {
+      throw new Error(`Facebook returned ${resp.status}`);
+    }
+    return (await resp.text()).slice(0, 800000);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchListingDetails(target) {
+  const errors = [];
+
+  for (const userAgent of LISTING_USER_AGENTS) {
+    let html;
+    try {
+      html = await fetchListingPage(target.url, userAgent);
+    } catch (error) {
+      errors.push(error.message);
+      continue;
+    }
+
+    const title = extractListingTitle(html);
+    if (!title) {
+      errors.push("Facebook served a login wall instead of the listing");
+      continue;
+    }
+
+    return {
+      title,
+      source: target.source,
+      listingUrl: target.url,
+      imageUrl: metaContent(html, "og:image"),
+      amount: parseListingPrice(html)
+    };
+  }
+
+  throw new Error(errors[0] || "Unable to read this Marketplace listing");
+}
+
 async function assertTeamUser(decodedToken) {
   const email = String(decodedToken?.email || "").toLowerCase();
   if (email === TEAM_EMAIL) return;
@@ -223,63 +405,6 @@ exports.floorPlanLookup = onRequest(
 
       const providerRuns = await Promise.allSettled(
         providers.map((provider) => callProvider(provider, address))
-      );
-
-      exports.inquiryIntake = onRequest(
-        {
-          region: "us-central1",
-          timeoutSeconds: 30,
-          memory: "256MiB"
-        },
-        async (req, res) => {
-          cors(res);
-          if (req.method === "OPTIONS") {
-            res.status(204).send("");
-            return;
-          }
-          if (req.method !== "POST") {
-            res.status(405).json({ error: "Method not allowed" });
-            return;
-          }
-
-          try {
-            const name = cleanText(req.body?.name, 120);
-            const phone = cleanText(req.body?.phone, 40);
-            const email = cleanText(req.body?.email, 120).toLowerCase();
-            const service = cleanText(req.body?.service, 120) || "Free Consultation";
-            const message = cleanText(req.body?.message, 3000);
-            const submittedAt = cleanText(req.body?.submittedAt, 80);
-
-            if (!name || !phone || !email) {
-              res.status(400).json({ error: "name, phone, and email are required" });
-              return;
-            }
-
-            await db.collection("projects").add({
-              title: name,
-              clientName: name,
-              clientEmail: email,
-              clientPhone: phone,
-              inquiryService: service,
-              inquiryMessage: message,
-              inquirySubmittedAt: submittedAt || null,
-              inquirySource: "website-contact-form",
-              pipelineStage: "potential",
-              pipelineProgress: 10,
-              contractors: [],
-              hoursAtHome: 0,
-              floorPlanUrl: "",
-              teamNotes: "",
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-
-            res.status(200).json({ result: "ok" });
-          } catch (error) {
-            logger.error("inquiryIntake failed", error);
-            res.status(500).json({ error: "Unable to save inquiry to pipeline" });
-          }
-        }
       );
 
       const successes = providerRuns
@@ -343,6 +468,130 @@ exports.floorPlanLookup = onRequest(
     } catch (error) {
       logger.error("floorPlanLookup failed", error);
       res.status(500).json({ error: error.message || "Unexpected floor plan lookup error" });
+    }
+  }
+);
+
+exports.inquiryIntake = onRequest(
+  {
+    region: "us-central1",
+    timeoutSeconds: 30,
+    memory: "256MiB"
+  },
+  async (req, res) => {
+    cors(res);
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const name = cleanText(req.body?.name, 120);
+      const phone = cleanText(req.body?.phone, 40);
+      const email = cleanText(req.body?.email, 120).toLowerCase();
+      const service = cleanText(req.body?.service, 120) || "Free Consultation";
+      const message = cleanText(req.body?.message, 3000);
+      const submittedAt = cleanText(req.body?.submittedAt, 80);
+
+      if (!name || !phone || !email) {
+        res.status(400).json({ error: "name, phone, and email are required" });
+        return;
+      }
+
+      await db.collection("projects").add({
+        title: name,
+        clientName: name,
+        clientEmail: email,
+        clientPhone: phone,
+        inquiryService: service,
+        inquiryMessage: message,
+        inquirySubmittedAt: submittedAt || null,
+        inquirySource: "website-contact-form",
+        pipelineStage: "potential",
+        pipelineProgress: 10,
+        contractors: [],
+        hoursAtHome: 0,
+        floorPlanUrl: "",
+        teamNotes: "",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      res.status(200).json({ result: "ok" });
+    } catch (error) {
+      logger.error("inquiryIntake failed", error);
+      res.status(500).json({ error: "Unable to save inquiry to pipeline" });
+    }
+  }
+);
+
+exports.listingLookup = onRequest(
+  {
+    region: "us-central1",
+    timeoutSeconds: 60,
+    memory: "256MiB"
+  },
+  async (req, res) => {
+    cors(res);
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const token = bearerToken(req);
+      if (!token) {
+        res.status(401).json({ error: "Missing ******" });
+        return;
+      }
+      const decoded = await admin.auth().verifyIdToken(token);
+      await assertTeamUser(decoded);
+
+      const urls = Array.isArray(req.body?.urls) ? req.body.urls : [];
+      const requested = urls.map((url) => String(url || "").trim()).filter(Boolean).slice(0, 25);
+      if (!requested.length) {
+        res.status(400).json({ error: "At least one listing URL is required" });
+        return;
+      }
+
+      const results = await Promise.all(
+        requested.map(async (rawUrl) => {
+          const target = listingSourceForUrl(rawUrl);
+          if (!target) {
+            return {
+              requestedUrl: rawUrl,
+              ok: false,
+              error: "Only https Facebook Marketplace listing URLs are supported"
+            };
+          }
+          try {
+            const details = await fetchListingDetails(target);
+            return { requestedUrl: rawUrl, ok: true, ...details };
+          } catch (error) {
+            logger.warn("listingLookup item failed", { url: rawUrl, message: error.message });
+            return {
+              requestedUrl: rawUrl,
+              ok: false,
+              source: target.source,
+              listingUrl: target.url,
+              error: error.message || "Unable to read listing"
+            };
+          }
+        })
+      );
+
+      res.status(200).json({ results });
+    } catch (error) {
+      logger.error("listingLookup failed", error);
+      res.status(500).json({ error: error.message || "Unexpected listing lookup error" });
     }
   }
 );
