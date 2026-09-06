@@ -1,5 +1,5 @@
 import { observeAuth, logout, requirePasswordVerifiedSession, resolvePortalContext, db, storage, auth } from "./portal.js?v=20260905a";
-import { FLOOR_PLAN_LOOKUP_ENDPOINT, GOOGLE_MAPS_API_KEY } from "./firebase-config.js";
+import { FLOOR_PLAN_LOOKUP_ENDPOINT, GOOGLE_MAPS_API_KEY, LISTING_IMPORT_ENDPOINT } from "./firebase-config.js";
 import {
   doc,
   onSnapshot,
@@ -64,6 +64,9 @@ const auctionForm = document.getElementById("auctionForm");
 const auctionTitle = document.getElementById("auctionTitle");
 const auctionStatus = document.getElementById("auctionStatus");
 const auctionAmount = document.getElementById("auctionAmount");
+const listingImportForm = document.getElementById("listingImportForm");
+const listingUrlInput = document.getElementById("listingUrlInput");
+const listingImportNote = document.getElementById("listingImportNote");
 const teamAuctionBody = document.getElementById("teamAuctionBody");
 const printConsignmentSheetBtn = document.getElementById("printConsignmentSheetBtn");
 const timeEntryForm = document.getElementById("timeEntryForm");
@@ -867,6 +870,7 @@ function renderAuction(items = []) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><input data-role="title" data-id="${id}" type="text" value="${title.replaceAll("\"", "&quot;")}" aria-label="Item name"></td>
+      <td>${data.imageUrl ? `<img src="${data.imageUrl}" alt="${title.replaceAll("\"", "&quot;")}" class="auction-item-photo">` : "—"}</td>
       <td>
         <select data-role="status" data-id="${id}">
           <option value="to_be_sold" ${status === "to_be_sold" ? "selected" : ""}>To Be Sold</option>
@@ -1244,6 +1248,27 @@ auctionForm.addEventListener("submit", async (event) => {
   auctionStatus.value = "to_be_sold";
 });
 
+listingImportForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const listingUrl = listingUrlInput.value.trim();
+  if (!listingUrl || !projectId) return;
+  listingImportNote.textContent = "Importing listing...";
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const response = await fetch(LISTING_IMPORT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ projectId, listingUrl })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || "Unable to import listing.");
+    listingImportForm.reset();
+    listingImportNote.textContent = `Imported "${body.title}" from ${body.source}.`;
+  } catch (err) {
+    listingImportNote.textContent = err.message || "Unable to import listing.";
+  }
+});
+
 teamAuctionBody.addEventListener("change", async (event) => {
   const target = event.target;
   const id = target.dataset.id;
@@ -1278,7 +1303,7 @@ const CONSIGNMENT_FEE_RATE = 0.3;
 function buildConsignmentSheetHtml() {
   const soldItems = auctionItemsCache
     .filter(({ data }) => (data.status || "") === "sold")
-    .map(({ data }) => ({ title: data.title || "", amount: Number(data.amount || 0) }));
+    .map(({ data }) => ({ title: data.title || "", amount: Number(data.amount || 0), imageUrl: data.imageUrl || "" }));
 
   const totalSold = soldItems.reduce((sum, item) => sum + item.amount, 0);
   const consignmentFee = totalSold * CONSIGNMENT_FEE_RATE;
@@ -1292,10 +1317,11 @@ function buildConsignmentSheetHtml() {
     ? soldItems.map((item) => `
       <tr>
         <td>${item.title}</td>
+        <td>${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="consignment-item-photo">` : "—"}</td>
         <td class="amount">${currency(item.amount)}</td>
       </tr>
     `).join("")
-    : `<tr><td colspan="2" class="empty">No sold items yet.</td></tr>`;
+    : `<tr><td colspan="3" class="empty">No sold items yet.</td></tr>`;
 
   return `<!DOCTYPE html>
 <html>
@@ -1331,7 +1357,7 @@ function buildConsignmentSheetHtml() {
   </div>
   <table>
     <thead>
-      <tr><th>Item</th><th class="amount">Sold Price</th></tr>
+      <tr><th>Item</th><th>Photo</th><th class="amount">Sold Price</th></tr>
     </thead>
     <tbody>
       ${rows}

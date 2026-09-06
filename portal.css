@@ -727,6 +727,14 @@ a.btn-ghost:hover {
   gap: 14px;
 }
 
+.auction-item-photo,
+.consignment-item-photo {
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
 .pipeline-list {
   display: grid;
   gap: 10px;

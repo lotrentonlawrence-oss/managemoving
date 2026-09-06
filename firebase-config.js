@@ -10,6 +10,7 @@ export const FIREBASE_CONFIG = {
 // Set to your HTTPS Cloud Function / API endpoint that performs provider lookup,
 // uploads the selected floor-plan image to Storage, and returns metadata.
 export const FLOOR_PLAN_LOOKUP_ENDPOINT = "https://us-central1-sweet-home-transitions.cloudfunctions.net/floorPlanLookup";
+export const LISTING_IMPORT_ENDPOINT = "https://us-central1-sweet-home-transitions.cloudfunctions.net/importListing";
 
 // Google Maps JavaScript API key with Places API enabled.
 export const GOOGLE_MAPS_API_KEY = "AIzaSyBZ01dh9n3VTIDOBFP68y1er2Ajmn9nAoI";

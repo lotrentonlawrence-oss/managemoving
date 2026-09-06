@@ -68,6 +68,9 @@ The same inquiry submission also posts to the Firebase HTTPS function
      account to a selected `projectId`
    - Open **Client Snapshot** from the pipeline card to manage project details,
      floor plan, auctions, and notes with autosave.
+   - Paste a public Facebook Marketplace or eBay listing URL in Auction
+     Management to import its title and main photo into the auction list and
+     printed sold consignment sheet.
 7. Configure automated floor-plan import:
    - `FLOOR_PLAN_LOOKUP_ENDPOINT` is pre-wired to:
      `https://us-central1-sweet-home-transitions.cloudfunctions.net/floorPlanLookup`

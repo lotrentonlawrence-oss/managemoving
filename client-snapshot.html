@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="portal.css?v=20260712a">
+  <link rel="stylesheet" href="portal.css?v=20260905b">
 </head>
 <body>
   <header class="portal-header">
@@ -259,11 +259,17 @@
         <input id="auctionAmount" type="number" min="0" step="0.01" placeholder="Sale amount">
         <button type="submit">Add Auction Item</button>
       </form>
+      <form id="listingImportForm" class="split-two">
+        <input id="listingUrlInput" type="url" placeholder="Facebook Marketplace or eBay listing URL" required>
+        <button type="submit">Import Listing</button>
+      </form>
+      <p id="listingImportNote" class="form-note"></p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Item</th>
+              <th>Photo</th>
               <th>Status</th>
               <th>Amount</th>
               <th>Actions</th>
@@ -276,6 +282,6 @@
     </section>
   </main>
 
-  <script type="module" src="client-snapshot.js?v=20260905a"></script>
+  <script type="module" src="client-snapshot.js?v=20260905b"></script>
 </body>
 </html>
