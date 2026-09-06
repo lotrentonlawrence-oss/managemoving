@@ -179,6 +179,58 @@ async function assertTeamUser(decodedToken) {
   throw new Error("Not authorized for team floor plan lookup");
 }
 
+function isAllowedListingHost(hostname) {
+  const host = String(hostname || "").toLowerCase();
+  return host === "facebook.com" || host.endsWith(".facebook.com") ||
+    host === "ebay.com" || host.endsWith(".ebay.com");
+}
+
+function isAllowedListingImageHost(hostname) {
+  const host = String(hostname || "").toLowerCase();
+  return isAllowedListingHost(host) || host === "ebayimg.com" || host.endsWith(".ebayimg.com") ||
+    host === "fbcdn.net" || host.endsWith(".fbcdn.net") ||
+    host === "fbsbx.com" || host.endsWith(".fbsbx.com");
+}
+
+function listingMeta(html, property) {
+  const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["']|` +
+    `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${escaped}["']`,
+    "i"
+  );
+  const match = html.match(pattern);
+  return match ? (match[1] || match[2] || "").trim() : "";
+}
+
+async function storeListingImage(projectId, remoteImageUrl) {
+  const imageUrl = new URL(remoteImageUrl);
+  if (!imageUrl.protocol.startsWith("http") || !isAllowedListingImageHost(imageUrl.hostname)) {
+    throw new Error("Listing image must come from Facebook or eBay.");
+  }
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), DEFAULT_TIMEOUT_MS);
+  try {
+    const response = await fetch(imageUrl, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "SweetHomeTransitionsListingImporter/1.0" }
+    });
+    if (!response.ok) throw new Error(`Unable to download listing image (${response.status})`);
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) throw new Error("Listing image URL did not return an image.");
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > 10 * 1024 * 1024) throw new Error("Listing image is too large.");
+    const ext = extensionFromContentType(contentType);
+    const path = `auction-items/${projectId}/listing-${Date.now()}.${ext}`;
+    const file = storage.file(path);
+    await file.save(bytes, { contentType, resumable: false, metadata: { cacheControl: "public,max-age=3600" } });
+    const [signedUrl] = await file.getSignedUrl({ action: "read", expires: "2100-01-01" });
+    return signedUrl;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 exports.floorPlanLookup = onRequest(
   {
     region: "us-central1",
@@ -199,7 +251,7 @@ exports.floorPlanLookup = onRequest(
     try {
       const token = bearerToken(req);
       if (!token) {
-        res.status(401).json({ error: "Missing Bearer token" });
+        res.status(401).json({ error: "Missing authorization token" });
         return;
       }
       const decoded = await admin.auth().verifyIdToken(token);
@@ -223,63 +275,6 @@ exports.floorPlanLookup = onRequest(
 
       const providerRuns = await Promise.allSettled(
         providers.map((provider) => callProvider(provider, address))
-      );
-
-      exports.inquiryIntake = onRequest(
-        {
-          region: "us-central1",
-          timeoutSeconds: 30,
-          memory: "256MiB"
-        },
-        async (req, res) => {
-          cors(res);
-          if (req.method === "OPTIONS") {
-            res.status(204).send("");
-            return;
-          }
-          if (req.method !== "POST") {
-            res.status(405).json({ error: "Method not allowed" });
-            return;
-          }
-
-          try {
-            const name = cleanText(req.body?.name, 120);
-            const phone = cleanText(req.body?.phone, 40);
-            const email = cleanText(req.body?.email, 120).toLowerCase();
-            const service = cleanText(req.body?.service, 120) || "Free Consultation";
-            const message = cleanText(req.body?.message, 3000);
-            const submittedAt = cleanText(req.body?.submittedAt, 80);
-
-            if (!name || !phone || !email) {
-              res.status(400).json({ error: "name, phone, and email are required" });
-              return;
-            }
-
-            await db.collection("projects").add({
-              title: name,
-              clientName: name,
-              clientEmail: email,
-              clientPhone: phone,
-              inquiryService: service,
-              inquiryMessage: message,
-              inquirySubmittedAt: submittedAt || null,
-              inquirySource: "website-contact-form",
-              pipelineStage: "potential",
-              pipelineProgress: 10,
-              contractors: [],
-              hoursAtHome: 0,
-              floorPlanUrl: "",
-              teamNotes: "",
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-
-            res.status(200).json({ result: "ok" });
-          } catch (error) {
-            logger.error("inquiryIntake failed", error);
-            res.status(500).json({ error: "Unable to save inquiry to pipeline" });
-          }
-        }
       );
 
       const successes = providerRuns
@@ -343,6 +338,133 @@ exports.floorPlanLookup = onRequest(
     } catch (error) {
       logger.error("floorPlanLookup failed", error);
       res.status(500).json({ error: error.message || "Unexpected floor plan lookup error" });
+    }
+  }
+);
+
+exports.inquiryIntake = onRequest(
+  {
+    region: "us-central1",
+    timeoutSeconds: 30,
+    memory: "256MiB"
+  },
+  async (req, res) => {
+    cors(res);
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const name = cleanText(req.body?.name, 120);
+      const phone = cleanText(req.body?.phone, 40);
+      const email = cleanText(req.body?.email, 120).toLowerCase();
+      const service = cleanText(req.body?.service, 120) || "Free Consultation";
+      const message = cleanText(req.body?.message, 3000);
+      const submittedAt = cleanText(req.body?.submittedAt, 80);
+
+      if (!name || !phone || !email) {
+        res.status(400).json({ error: "name, phone, and email are required" });
+        return;
+      }
+
+      await db.collection("projects").add({
+        title: name,
+        clientName: name,
+        clientEmail: email,
+        clientPhone: phone,
+        inquiryService: service,
+        inquiryMessage: message,
+        inquirySubmittedAt: submittedAt || null,
+        inquirySource: "website-contact-form",
+        pipelineStage: "potential",
+        pipelineProgress: 10,
+        contractors: [],
+        hoursAtHome: 0,
+        floorPlanUrl: "",
+        teamNotes: "",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      res.status(200).json({ result: "ok" });
+    } catch (error) {
+      logger.error("inquiryIntake failed", error);
+      res.status(500).json({ error: "Unable to save inquiry to pipeline" });
+    }
+  }
+);
+
+exports.importListing = onRequest(
+  { region: "us-central1", timeoutSeconds: 60, memory: "512MiB" },
+  async (req, res) => {
+    cors(res);
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const token = bearerToken(req);
+      if (!token) {
+        res.status(401).json({ error: "Missing authorization token" });
+        return;
+      }
+      const decoded = await admin.auth().verifyIdToken(token);
+      await assertTeamUser(decoded);
+
+      const projectId = cleanText(req.body?.projectId, 120);
+      const listingUrl = cleanText(req.body?.listingUrl, 2000);
+      const parsedUrl = new URL(listingUrl);
+      if (!projectId || !["http:", "https:"].includes(parsedUrl.protocol) || !isAllowedListingHost(parsedUrl.hostname)) {
+        res.status(400).json({ error: "Use a Facebook Marketplace or eBay listing URL." });
+        return;
+      }
+
+      const response = await fetch(parsedUrl, {
+        headers: { "User-Agent": "SweetHomeTransitionsListingImporter/1.0" },
+        redirect: "manual"
+      });
+      if (!response.ok) {
+        res.status(502).json({ error: `Listing page could not be read (${response.status}).` });
+        return;
+      }
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("text/html")) {
+        res.status(502).json({ error: "The listing URL did not return an HTML page." });
+        return;
+      }
+      const html = (await response.text()).slice(0, 2_000_000);
+      const title = cleanText(listingMeta(html, "og:title") || listingMeta(html, "twitter:title"), 240);
+      const imageUrl = listingMeta(html, "og:image") || listingMeta(html, "twitter:image");
+      if (!title || !imageUrl) {
+        res.status(422).json({ error: "The listing did not expose a title and main photo." });
+        return;
+      }
+      const storedImageUrl = await storeListingImage(projectId, imageUrl);
+      const source = parsedUrl.hostname.toLowerCase().includes("ebay") ? "eBay" : "Facebook Marketplace";
+      await db.collection("projects").doc(projectId).collection("auctionItems").add({
+        title,
+        imageUrl: storedImageUrl,
+        listingUrl,
+        listingSource: source,
+        status: "to_be_sold",
+        amount: 0,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      res.status(200).json({ title, source, imageUrl: storedImageUrl });
+    } catch (error) {
+      logger.error("importListing failed", error);
+      res.status(400).json({ error: error.message || "Unable to import listing." });
     }
   }
 );
